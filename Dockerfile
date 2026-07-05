@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 ENV PYTHONPATH=/app
 COPY requirements.txt ./
-RUN UV_PRERELEASE=allow uv pip sync requirements.txt --system
+RUN uv pip sync requirements.txt --system
 COPY . .
 
 # ---------------------------------------------------------------------------

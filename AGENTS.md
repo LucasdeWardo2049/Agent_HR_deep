@@ -38,12 +38,12 @@ Shared:
 | [`agents/platform_manager.py`](agents/platform_manager.py) | Flagship agent — codebase context provider + read-only runtime tools (eval history, deployment checks, schedules, components). |
 | [`agents/agent_builder.py`](agents/agent_builder.py) | Reference agent — creates, edits, and publishes agents, teams, and workflows through StudioTools immediately; only deletes keep a HITL confirmation gate. |
 | [`workflows/deployment_check.py`](workflows/deployment_check.py) | Reference workflow — a deterministic `Step` that checks DB, auth, scheduler URL, MCP reachability, Slack config, schedule flags, and component imports; imported into `app/main.py` and passed to `AgentOS(workflows=[...])`. |
-| [`workflows/run_evals.py`](workflows/run_evals.py) | Optional workflow — runs an eval profile and returns a compact report. Registered but not scheduled unless `ENABLE_SCHEDULED_EVALS=True`. |
+| [`workflows/run_evals.py`](workflows/run_evals.py) | Optional workflow — runs a tagged subset of the eval suite and returns a compact report. Registered but not scheduled unless `ENABLE_SCHEDULED_EVALS=True`. |
 | [`app/schedules.py`](app/schedules.py) | `register_schedules()` — cron registration, called from the lifespan (idempotent, fail-soft). |
 | [`db/session.py`](db/session.py) | `get_postgres_db()`, `create_knowledge()`. |
 | [`db/url.py`](db/url.py) | Builds the database URL from env. |
 | [`evals/cases.py`](evals/cases.py) | Eval cases (each is a `Case` with optional judge + reliability checks). |
-| [`evals/__main__.py`](evals/__main__.py) | `python -m evals` runner — wraps agno's `AgentAsJudgeEval` + `ReliabilityEval`. |
+| [`evals/__main__.py`](evals/__main__.py) | `python -m evals` — thin entrypoint over agno's eval suite runner (`agno.eval.cli`). |
 | [`.agents/skills/`](.agents/skills/) | Dev-time **coding-agent workflows** (`create-new-agent`, `extend-agent`, `improve-agent`, `eval-and-improve`, `review-and-improve`) — slash commands coding agents run *on this repo*. `.claude/skills` is a committed symlink into it — see [Working with coding agents](#working-with-coding-agents). |
 | [`README.md`](README.md) | Public entry point — leads with the copy-paste setup prompt that takes a coding agent from clone to connected. |
 | [`compose.yaml`](compose.yaml) | Docker Compose for local development. |
@@ -154,13 +154,13 @@ Use `/extend-agent` to *change* the agent; use `/improve-agent` to *harden* it a
 
 ## Evals
 
-The eval suite lives in [`evals/`](evals/). Each case wraps agno's [`AgentAsJudgeEval`](https://docs.agno.com/evals/agent-as-judge) (LLM judge against a rubric, binary pass/fail) and/or [`ReliabilityEval`](https://docs.agno.com/evals/reliability) (tool-call assertion). Any case whose agent can reach the ungated create/edit/publish Studio tools (anything probing `agent-builder`) must set `cleanup_new_components=True` — the runner snapshots Studio component ids before the case and hard-deletes any new ones afterwards, even on timeout. Cases are tagged with profiles:
+The eval suite lives in [`evals/`](evals/) and runs on agno's eval suite runner (`agno.eval`): the template declares `Case`s, agno runs them. Each case wraps agno's [`AgentAsJudgeEval`](https://docs.agno.com/evals/agent-as-judge) (LLM judge against a rubric, binary pass/fail) and/or [`ReliabilityEval`](https://docs.agno.com/evals/reliability) (tool-call assertion). Any case whose agent can reach the ungated create/edit/publish Studio tools (anything probing `agent-builder`) must set the snapshot-diff hooks from `evals/cases.py` (`setup=snapshot_component_ids, teardown=cleanup_new_components`) — setup records the Studio component ids before the case and teardown hard-deletes any new ones afterwards, even on timeout. Cases carry tags:
 
 - `smoke` — fast checks that prove the template's self-driving surfaces still work.
 - `release` — broader checks for pre-release confidence.
 - `live` — current web/source checks that are useful but should not be deterministic release gates.
 
-Run with `python -m evals --profile smoke`, `python -m evals --profile release`, or `python -m evals --case <name>`. Add `--json-output out.json` when a workflow or coding agent needs machine-readable results. Results log to Postgres via `db=eval_db` so history is visible at os.agno.com.
+Run with `python -m evals --tag smoke`, `python -m evals --tag release`, or `python -m evals --name <case>`. Add `--json-output out.json` when a workflow or coding agent needs machine-readable results. Results log to Postgres via `db=eval_db` so history is visible at os.agno.com.
 
 To diagnose failures and fix in scope, run the `/eval-and-improve` skill ([`.agents/skills/eval-and-improve`](.agents/skills/eval-and-improve/SKILL.md)) in Claude Code.
 
@@ -193,9 +193,9 @@ Invoke a skill by name (`/extend-agent`) or just describe the task — Claude Co
 | `AGENTOS_URL` | no | `http://127.0.0.1:8000` | Scheduler base URL — cron triggers reach AgentOS over this. `scripts/railway/up.sh` auto-sets it to the created Railway domain (and writes it back into your env file); only set it by hand for custom domains or tunnels. Left at the localhost default in prod, scheduled jobs silently never fire. |
 | `ENABLE_DEPLOY_CHECK` | no | `True` | The reference deployment-check cron (`app/schedules.py`) runs daily by default. Set `False` to disable; the workflow stays runnable on demand regardless. |
 | `ENABLE_SCHEDULED_EVALS` | no | `False` | If `True`, schedules the run-evals workflow daily. Off by default because it uses model calls. |
-| `EVALS_PROFILE` | no | `smoke` | Eval profile used by the run-evals workflow. |
+| `EVALS_TAG` | no | `smoke` | Eval tag run by the run-evals workflow. |
 | `EVALS_CASE_TIMEOUT_SECONDS` | no | `90` | Default per-case timeout for run-evals runs; applies only to cases that don't set their own `timeout_seconds`. |
-| `EVALS_SUITE_TIMEOUT_SECONDS` | no | `900` | Whole-suite timeout for run-evals runs; per-case timeouts are the granular limit. The default bounds the `smoke` profile's worst case (incl. builder-case teardown). |
+| `EVALS_SUITE_TIMEOUT_SECONDS` | no | `900` | Whole-suite timeout for run-evals runs; per-case timeouts are the granular limit. The default bounds the `smoke` tag's worst case (incl. builder-case teardown). |
 | `PARALLEL_API_KEY` | no | — | Authenticates the WebSearch Agent's Parallel SDK / MCP connection (raises rate ceiling). |
 | `SLACK_BOT_TOKEN` | no | — | Bot token. Set with signing secret to enable the Slack interface. |
 | `SLACK_SIGNING_SECRET` | no | — | Signing secret. Both it and the bot token must be set for the interface to load. |
@@ -215,7 +215,7 @@ Invoke a skill by name (`/extend-agent`) or just describe the task — Claude Co
 
 **Reference examples.** [`workflows/deployment_check.py`](workflows/deployment_check.py) is a one-step, **deterministic** workflow — no LLM, no token cost — that returns a deployment readiness report. It checks DB connectivity and tables, JWT config, scheduler URL, MCP endpoint reachability, Slack env consistency, schedule flags, and reference component imports. [`app/schedules.py`](app/schedules.py) registers a daily cron that hits its endpoint (`POST /workflows/deployment-check/runs`). Because it's deterministic and free, the cron runs **on** by default (daily at 13:00 UTC); disable it with `ENABLE_DEPLOY_CHECK=False`.
 
-[`workflows/run_evals.py`](workflows/run_evals.py) runs an eval profile and returns a compact report. It is registered in AgentOS for on-demand use, but its cron is **off** by default because it uses model calls. Set `ENABLE_SCHEDULED_EVALS=True` to schedule the smoke profile daily at 14:00 UTC.
+[`workflows/run_evals.py`](workflows/run_evals.py) runs a tagged subset of the eval suite and returns a compact report. It is registered in AgentOS for on-demand use, but its cron is **off** by default because it uses model calls. Set `ENABLE_SCHEDULED_EVALS=True` to schedule the smoke-tagged cases daily at 14:00 UTC.
 
 To add your own: define a `Workflow` in `workflows/`, import it into [`app/main.py`](app/main.py) and add it to `AgentOS(workflows=[...])`, and register a schedule for it in `register_schedules()`. Other common uses: **maintenance** (purge old sessions, vacuum tables), **periodic re-evaluation** (run `python -m evals` weekly to catch regressions).
 

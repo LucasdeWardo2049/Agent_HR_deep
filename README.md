@@ -236,10 +236,10 @@ Then improve your agents by running the following skills:
 
 ### Evaluate
 
-Run the eval suite to check for regressions. The eval cases live in [`evals/cases.py`](evals/cases.py), tagged with profiles. The evals run on the host machine, so set up the venv with `./scripts/venv_setup.sh && source .venv/bin/activate`, then:
+Run the eval suite to check for regressions. The eval cases live in [`evals/cases.py`](evals/cases.py) as tagged `agno.eval.Case`s; agno's eval suite runner executes them. The evals run on the host machine, so set up the venv with `./scripts/venv_setup.sh && source .venv/bin/activate`, then:
 
 ```sh
-python -m evals --profile smoke     # fast checks of the self-driving surfaces
+python -m evals --tag smoke     # fast checks of the self-driving surfaces
 ```
 
 If a case fails, run **`/eval-and-improve`** — it diagnoses each failure, fixes what's in scope, and loops until green.
@@ -263,9 +263,9 @@ From chat, ask **Platform Manager** for a health check any time — it reads the
 | `AGENTOS_URL` | no | `http://127.0.0.1:8000` | Scheduler base URL. `scripts/railway/up.sh` auto-sets it to your Railway domain; set by hand only for a custom domain or tunnel. |
 | `ENABLE_DEPLOY_CHECK` | no | `True` | The reference deployment-check cron runs daily by default. Set `False` to disable; the workflow is runnable on demand regardless. |
 | `ENABLE_SCHEDULED_EVALS` | no | `False` | If `True`, schedules the run-evals workflow daily. Off by default because it uses model calls. |
-| `EVALS_PROFILE` | no | `smoke` | Eval profile used by the run-evals workflow. |
+| `EVALS_TAG` | no | `smoke` | Eval tag run by the run-evals workflow. |
 | `EVALS_CASE_TIMEOUT_SECONDS` | no | `90` | Default per-case timeout for run-evals runs; applies only to cases that don't set their own `timeout_seconds`. |
-| `EVALS_SUITE_TIMEOUT_SECONDS` | no | `900` | Whole-suite timeout for run-evals runs; per-case timeouts are the granular limit. The default bounds the `smoke` profile's worst case (incl. builder-case teardown). |
+| `EVALS_SUITE_TIMEOUT_SECONDS` | no | `900` | Whole-suite timeout for run-evals runs; per-case timeouts are the granular limit. The default bounds the `smoke` tag's worst case (incl. builder-case teardown). |
 | `PARALLEL_API_KEY` | no | none | Authenticates the WebSearch Agent's Parallel SDK / MCP connection. |
 | `SLACK_BOT_TOKEN` / `SLACK_SIGNING_SECRET` | no | none | Both must be set to enable the Slack interface. |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASS` / `DB_DATABASE` | no | matches compose | Postgres connection. |

@@ -49,7 +49,7 @@ Generate enough probes to meaningfully exercise the agent's stated capabilities 
 
 For each probe, write a one-line **expected behavior** describing what "good" looks like — drawn from the agent's `INSTRUCTIONS`. *You* are the oracle here; don't ask the user to validate your judgment. Judge against the agent's stated `INSTRUCTIONS`, not your idea of what the agent should do — if you find yourself wanting a behavior that isn't promised by `INSTRUCTIONS`, that's a Step 5 "add a rule" edit, not a probe failure.
 
-> **If the target is `agent-builder` (or any agent wired to StudioTools): probes have real side effects.** `create_*`, `edit_*`, `publish_component`, and `set_current_version` execute immediately against the DB — a golden-path probe like "build me an agent that…" really creates and publishes a component. Bracket the whole loop with the eval suite's snapshot-diff helpers (the same ones `cleanup_new_components` cases use):
+> **If the target is `agent-builder` (or any agent wired to StudioTools): probes have real side effects.** `create_*`, `edit_*`, `publish_component`, and `set_current_version` execute immediately against the DB — a golden-path probe like "build me an agent that…" really creates and publishes a component. Bracket the whole loop with the eval suite's snapshot-diff helpers (the same ones the builder cases' `setup`/`teardown` hooks use):
 >
 > ```bash
 > source .venv/bin/activate

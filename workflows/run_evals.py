@@ -2,7 +2,7 @@
 Run Evals
 =========
 
-Workflow that runs an eval profile and returns a compact report.
+Workflow that runs a tagged subset of the eval suite and returns a compact report.
 """
 
 import asyncio
@@ -44,41 +44,43 @@ def _format_summary(payload: dict) -> str:
 
 
 async def run_evals_step(_step_input: StepInput) -> StepOutput:
-    """Run the configured eval profile in-process and return a markdown summary."""
+    """Run the configured eval tag in-process and return a markdown summary."""
     # Imported lazily so the eval suite only loads when the workflow actually runs.
-    from evals.__main__ import run_profile
+    from agno.eval import arun_cases
 
-    profile = getenv("EVALS_PROFILE", "smoke")
+    from evals.cases import CASES, eval_db
+
+    tag = getenv("EVALS_TAG", "smoke")
     case_timeout_seconds = _int_env("EVALS_CASE_TIMEOUT_SECONDS", 90)
-    # 900 bounds the smoke profile's worst case: per-case ceilings sum past 600s
+    # 900 bounds the smoke tag's worst case: per-case ceilings sum past 600s
     # now that builder cases add snapshot/teardown DB calls and a timeout grace.
     suite_timeout_seconds = _int_env("EVALS_SUITE_TIMEOUT_SECONDS", 900)
 
     try:
-        payload = await asyncio.wait_for(
-            run_profile(profile=profile, default_timeout=case_timeout_seconds),
+        suite = await asyncio.wait_for(
+            arun_cases(CASES, tag=tag, default_timeout=case_timeout_seconds, db=eval_db),
             timeout=suite_timeout_seconds,
         )
     except TimeoutError:
         return StepOutput(
             content=(
                 "# Evals\n\n"
-                f"Overall: **FAIL** — `{profile}` profile exceeded {suite_timeout_seconds}s "
+                f"Overall: **FAIL** — `{tag}` cases exceeded {suite_timeout_seconds}s "
                 "(EVALS_SUITE_TIMEOUT_SECONDS)."
             ),
             success=False,
         )
 
     return StepOutput(
-        content=_format_summary(payload),
-        success=payload.get("summary", {}).get("status") == "PASS",
+        content=_format_summary(suite.to_dict()),
+        success=suite.status == "PASS",
     )
 
 
 run_evals = Workflow(
     id="run-evals",
     name="Run Evals",
-    description="Run an eval profile and report pass/fail status.",
+    description="Run a tagged subset of the eval suite and report pass/fail status.",
     db=get_postgres_db(),
     steps=[Step(name="run-evals", executor=run_evals_step)],
 )

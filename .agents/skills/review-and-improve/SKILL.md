@@ -144,11 +144,11 @@ source .venv/bin/activate  # if not already active
 
 ## 6. Evals (ask before running)
 
-`python -m evals --profile release` hits OpenAI — costs money and takes a few minutes. Ask before running:
+`python -m evals --tag release` hits OpenAI — costs money and takes a few minutes. Ask before running:
 
-> Run `python -m evals --profile release` to confirm no agent regressed? (Hits OpenAI; takes 1-3 minutes.)
+> Run `python -m evals --tag release` to confirm no agent regressed? (Hits OpenAI; takes 1-3 minutes.)
 
-If yes, run `python -m evals --profile release`. If any case fails, add it to "Needs your call" with [`eval-and-improve`](../eval-and-improve/SKILL.md) as the recommended follow-up. If the user declines, skip this step entirely — it does not affect the rest of the report.
+If yes, run `python -m evals --tag release`. If any case fails, add it to "Needs your call" with [`eval-and-improve`](../eval-and-improve/SKILL.md) as the recommended follow-up. If the user declines, skip this step entirely — it does not affect the rest of the report.
 
 ## 7. Report
 

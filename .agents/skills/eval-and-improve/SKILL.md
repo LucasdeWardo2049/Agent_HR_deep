@@ -7,7 +7,7 @@ description: Run the eval suite (python -m evals), diagnose every failure, fix w
 
 > _**Coding-agent workflow** — a `/slash-command` your coding agent (Claude Code, Codex, others) runs while developing this repo. Invoke it by name (e.g. `/eval-and-improve`) or describe the task and it triggers automatically._
 
-You're running the platform's eval suite, diagnosing every failure, fixing what's in scope, and stopping when all cases pass. The eval wiring lives in [`evals/cases.py`](../../../evals/cases.py) (declares cases) and [`evals/__main__.py`](../../../evals/__main__.py) (runner), while fixes may also touch `agents/<slug>.py` or rare one-line config flips in `app/main.py` per Step 3. Each case uses agno's built-in [`AgentAsJudgeEval`](https://docs.agno.com/evals/agent-as-judge) (LLM judge against a `criteria` rubric, binary pass/fail) and/or [`ReliabilityEval`](https://docs.agno.com/evals/reliability) (asserts which tools fired) — no custom DSL.
+You're running the platform's eval suite, diagnosing every failure, fixing what's in scope, and stopping when all cases pass. The eval wiring lives in [`evals/cases.py`](../../../evals/cases.py) (declares `agno.eval.Case`s) and [`evals/__main__.py`](../../../evals/__main__.py) (a thin entrypoint over agno's eval suite runner, `agno.eval.cli`), while fixes may also touch `agents/<slug>.py` or rare one-line config flips in `app/main.py` per Step 3. Each case uses agno's built-in [`AgentAsJudgeEval`](https://docs.agno.com/evals/agent-as-judge) (LLM judge against a `criteria` rubric, binary pass/fail) and/or [`ReliabilityEval`](https://docs.agno.com/evals/reliability) (asserts which tools fired) — no custom DSL.
 
 ## 0. Preconditions
 
@@ -18,12 +18,12 @@ You're running the platform's eval suite, diagnosing every failure, fixing what'
 ## 1. Run the suite
 
 ```bash
-python -m evals --profile smoke        # fast template smoke profile
-python -m evals --profile release      # broader pre-release profile
-python -m evals --profile live         # current web/source checks
-python -m evals --case <name>          # single case while iterating
+python -m evals --tag smoke            # fast template smoke checks
+python -m evals --tag release          # broader pre-release checks
+python -m evals --tag live             # current web/source checks
+python -m evals --name <case>          # single case while iterating
 python -m evals --json-output out.json # machine-readable results
-python -m evals -v                     # stream the full agent run with rich panels + eval tables
+python -m evals -v                     # stream the full agent run with rich panels
 ```
 
 Output ends with a summary block. Exit code is 0 on all-pass, non-zero on any failure or error.
@@ -45,7 +45,7 @@ For every failed case, decide which kind of failure it is and fix at the appropr
 | Single case fails on full suite but passes alone | Transient flake or upstream rate limit (429s, MCP shutdown traceback) | Re-run the case in isolation. If it passes, re-run the full suite. If 429s persist, back off — don't fix the agent. |
 | Many cases fail at once | Broad regression — model swap, MCP server down, tool removed | Diagnose the root cause first; do NOT paper over with prompt edits |
 | `eval_db` write errors | Postgres down or migration missing | Bring DB up; check `docker logs agentos-db` |
-| Yellow `cleanup failed for <case>` warning, or `cleanup:` in a case's error | Snapshot-diff teardown couldn't delete Studio components the case created — create/edit/publish are ungated, so builder cases write real DB rows (a timeout does not mean nothing was created; the runner waits 10s then deletes what landed) | Check Postgres, then hard-delete the leaked components by id (`eval_db.delete_component(<id>, hard_delete=True)`); don't edit the agent or the case |
+| `cleanup:` in a case's error | The snapshot-diff `teardown` hook couldn't delete Studio components the case created — create/edit/publish are ungated, so builder cases write real DB rows (a timeout does not mean nothing was created; the hook waits 10s then deletes what landed) | Check Postgres, then hard-delete the leaked components by id (`eval_db.delete_component(<id>, hard_delete=True)`); don't edit the agent or the case |
 
 **Rule:** never weaken a case to make it green. Edit a case only when the assertion was wrong (overspecified rubric, wrong tool name, mismatch with how the agent's tools are named today). Catching a real regression is the whole point.
 
@@ -72,16 +72,16 @@ For agent quality issues that need fast iteration against a live container (cURL
 After each fix, re-run the failing case:
 
 ```bash
-python -m evals --case <name>
+python -m evals --name <case>
 ```
 
-When all targeted cases pass, run the release profile once more to confirm nothing regressed:
+When all targeted cases pass, run the release-tagged cases once more to confirm nothing regressed:
 
 ```bash
-python -m evals --profile release
+python -m evals --tag release
 ```
 
-Stop when `python -m evals --profile release` exits 0 **and** prints an `Eval Summary` block. If a re-run aborts mid-stream (no summary, regardless of exit code), treat it as inconclusive — re-run before declaring green.
+Stop when `python -m evals --tag release` exits 0 **and** prints an `Eval Summary` block. If a re-run aborts mid-stream (no summary, regardless of exit code), treat it as inconclusive — re-run before declaring green.
 
 ## 5. Add a new case (if needed)
 
@@ -92,51 +92,57 @@ Case(
     name="<short_id>",
     agent=<the_agent>,
     input="<prompt>",
-    profiles=("release",),  # add "smoke" only for fast core checks; use "live" for current web/source checks
+    tags=("release",),  # add "smoke" only for fast core checks; use "live" for current web/source checks
     # Either or both of:
     criteria="<rubric describing a correct response>",
     expected_tool_calls=("<tool_name>",),
     # Required whenever the case's agent has the ungated create/edit/publish
-    # Studio tools (every agent-builder case) — snapshot-diff teardown deletes
+    # Studio tools (every agent-builder case) — the snapshot-diff hooks delete
     # whatever the run created, even on timeout:
-    cleanup_new_components=True,
+    setup=snapshot_component_ids,
+    teardown=cleanup_new_components,
 )
 ```
 
-Run `python -m evals --case <name>` to confirm it passes against the current agent. Commit the new case alongside any fixes.
+Run `python -m evals --name <case>` to confirm it passes against the current agent. Commit the new case alongside any fixes.
 
 ## 6. Track regressions over time
 
 Every case logs to Postgres via `db=eval_db`. Connect your AgentOS at [os.agno.com](https://os.agno.com) and view eval history — useful for catching slow drift on a weekly cron.
 
-For the template's opt-in scheduled check, see [`workflows/run_evals.py`](../../../workflows/run_evals.py). It runs the `${EVALS_PROFILE:-smoke}` profile in-process (no subprocess) and returns a compact markdown report. Its cron is disabled by default; set `ENABLE_SCHEDULED_EVALS=True` to enable it.
+For the template's opt-in scheduled check, see [`workflows/run_evals.py`](../../../workflows/run_evals.py). It runs the `${EVALS_TAG:-smoke}`-tagged cases in-process (no subprocess) and returns a compact markdown report. Its cron is disabled by default; set `ENABLE_SCHEDULED_EVALS=True` to enable it.
 
 ---
 
 ## Reference: Case shape
 
+`Case` ships with agno (`from agno.eval import Case`) — the template declares cases, agno runs them:
+
 ```python
 @dataclass(frozen=True)
 class Case:
     name: str
-    agent: Agent
     input: str
-    profiles: tuple[str, ...] = ("release",)
+    agent: Agent
+    tags: tuple[str, ...] = ()
     timeout_seconds: int | None = None
 
     # Judge (LLM rubric, binary pass/fail): set to enable.
     criteria: str | None = None
+    judge_model: Model | None = None  # per-case judge override
 
     # Reliability (tool-call assertion): set to enable.
     expected_tool_calls: tuple[str, ...] | None = None
     allow_additional_tool_calls: bool = True
 
-    # Snapshot-diff teardown: delete components the case created (even on timeout).
-    cleanup_new_components: bool = False
+    # Lifecycle hooks: setup runs before the agent; its return value is passed to
+    # teardown, which always runs (pass, fail, error, timeout).
+    setup: Callable | None = None
+    teardown: Callable | None = None
 ```
 
 The runner calls `agent.arun()` once per case and feeds the response into both checks, so cases that set both fields cost one agent run, not two.
 
-Set `cleanup_new_components=True` on every case whose agent can reach the ungated create/edit/publish Studio tools (all agent-builder cases do this): the runner snapshots Studio component ids before the case and hard-deletes only the new ones after, so eval runs never leave components behind and never touch pre-existing ones.
+Set `setup=snapshot_component_ids, teardown=cleanup_new_components` (both in [`evals/cases.py`](../../../evals/cases.py)) on every case whose agent can reach the ungated create/edit/publish Studio tools (all agent-builder cases do this): setup snapshots Studio component ids before the case and teardown hard-deletes only the new ones after, so eval runs never leave components behind and never touch pre-existing ones.
 
 `evals/cases.py` also conditions one expected tool name on `PARALLEL_API_KEY` (web-search uses Parallel SDK if the key is set, keyless MCP otherwise). If your shell has the var set but `.env` doesn't (or vice versa), the assertion checks the wrong tool — sync them before debugging.
