@@ -1,6 +1,6 @@
-# AgentOS — one backend for every frontend
+# AgentOS: one agent backend for every frontend
 
-An agent server that attaches to any client. Built on [Agno](https://docs.agno.com), everything runs in your cloud and your data lives in your database.
+An agent server that works with any client. Built on [Agno](https://docs.agno.com), everything runs in your cloud and your data lives in your database.
 
 - **REST** for programmatic use — a full API at `:8000` runs your agents, teams, and workflows.
 - **Chat interfaces** for humans — Slack is wired in and lights up when its env vars are set; WhatsApp, Telegram, and Discord mirror the same pattern with the matching [Agno interface](https://docs.agno.com/agent-os/interfaces/overview).
@@ -126,11 +126,11 @@ You can run the platform anywhere that supports containerized images. For the li
 Create a new `.env.production` file for production credentials.
 
 ```sh
-cp .env .env.production
+cp .env .env.production          # or cp example.env .env.production if you skipped local setup
 # Edit .env.production with production values
 ```
 
-The deploy scripts read `.env.production` first and fall back to `.env`. This lets you keep separate values for local and production: different OpenAI keys, production-only credentials, a different Slack workspace. `.env.production` is gitignored.
+`up.sh` reads `.env.production` and falls back to `.env`; `env-sync.sh` syncs `.env.production` by default — pass a path to sync a different file (`./scripts/railway/env-sync.sh .env`). Keeping a separate `.env.production` lets you use different values for local and production: different OpenAI keys, production-only credentials, a different Slack workspace. `.env.production` is gitignored.
 
 ### 2. Deploy
 
@@ -138,7 +138,7 @@ The deploy scripts read `.env.production` first and fall back to `.env`. This le
 ./scripts/railway/up.sh
 ```
 
-This provisions Postgres and the app service on the same private network.
+This provisions Postgres and the app service on the same private network. Partway through, the script pauses and asks for a JWT verification key — that's production auth, covered next.
 
 ### 3. Set production auth
 
@@ -176,6 +176,8 @@ You can check the logs on the Railway dashboard, or by running the following com
 ```sh
 railway logs --service agent-os
 ```
+
+The platform also verifies itself: the deployment-check workflow runs daily (DB, auth, scheduler, MCP, Slack config) and Platform Manager reads its reports — connect the UI and ask it "How healthy is the platform?"
 
 ### 5. Redeploy after code changes
 
