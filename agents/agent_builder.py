@@ -90,14 +90,8 @@ agent_builder = Agent(
             teams=True,
             workflows=True,
             versions=True,
-            # Deletes only. Create/edit/publish are additive and reversible (all
-            # mutations land in the DB, edits stay drafts until published), so they
-            # execute without a gate. set_current_version is also deliberately
-            # ungated: it only re-points between already-published versions, so it is
-            # undone by flipping back. Deleting something others may depend on is not
-            # reversible, so it keeps the gate — and the pause is now approvable
-            # in-chat: MCP clients resolve it with continue_run, the AgentOS UI and
-            # Slack with an approve button.
+            # Create/edit/publish are additive and reversible, so they run without HITL.
+            # Deleting something others may depend on is not reversible, so it requires confirmation.
             requires_confirmation_tools=[
                 "delete_agent",
                 "delete_team",

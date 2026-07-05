@@ -73,8 +73,6 @@ agent_os = AgentOS(
     scheduler=True,
     scheduler_base_url=scheduler_base_url,
     authorization=runtime_env != "dev",
-    # MCP server at /mcp — chat apps and coding agents call agents/teams/workflows
-    # through it. Protected by the same JWT middleware as the REST API in prd.
     enable_mcp_server=True,
     lifespan=lifespan,
     db=get_postgres_db(),

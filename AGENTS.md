@@ -24,7 +24,7 @@ Shared:
 - Scheduler enabled by default (`scheduler=True`); `app/schedules.py` registers schedules from the lifespan. Deployment check runs daily **on** by default — set `ENABLE_DEPLOY_CHECK=False` to disable it. Scheduled evals are **off** by default — set `ENABLE_SCHEDULED_EVALS=True` to schedule the run-evals workflow.
 - Slack interface lights up automatically when both `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` are set.
 - MCP server on by default (`enable_mcp_server=True`) at `/mcp` — see [MCP interface](#mcp-interface).
-- JWT auth on whenever `RUNTIME_ENV == "prd"` (so production deploys are gated by default).
+- JWT auth on whenever `RUNTIME_ENV` is anything but `dev` (so production deploys, which default to `prd`, are gated by default).
 
 ## Key Files
 

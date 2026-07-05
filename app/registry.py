@@ -2,7 +2,7 @@
 AgentOS Registry
 ================
 
-The tools, functions, models, databases, and reference agents available to AgentOS Studio.
+The tools, functions, models, databases, and agents available to AgentOS Studio.
 """
 
 from os import getenv

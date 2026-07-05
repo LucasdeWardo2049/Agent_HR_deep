@@ -16,8 +16,6 @@ from db import get_postgres_db
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# Codebase lens — how the platform is wired. The agent sees a single
-# `query_my_codebase(question)` tool, and the sub-agent handles listing, searching, and reading files.
 codebase_context = WorkspaceContextProvider(
     id="my-codebase",
     name="My Codebase",
@@ -29,7 +27,7 @@ _db = get_postgres_db()
 
 
 def _eval_status(eval_data: Any) -> str | None:
-    """Compact PASS/FAIL from an eval run's stored payload, tolerant of both eval shapes."""
+    """Compact PASS/FAIL from an eval run's stored payload."""
     if not isinstance(eval_data, dict):
         return None
     results = eval_data.get("results")
@@ -105,9 +103,13 @@ def get_deployment_check_report(limit: int = 3) -> str:
     return json.dumps({"reports": reports[:limit]}, default=str)
 
 
-def list_schedules() -> str:
-    """Registered cron schedules with cadence, endpoint, enabled state, and next run time."""
-    schedules, total = _db.get_schedules(limit=100)
+def list_schedules(limit: int = 100) -> str:
+    """Registered cron schedules with cadence, endpoint, enabled state, and next run time.
+
+    Args:
+        limit: Maximum number of schedules to return.
+    """
+    schedules, total = _db.get_schedules(limit=limit)
     rows = [
         {
             key: schedule.get(key)
@@ -134,8 +136,7 @@ def list_platform_components(limit: int = 50) -> str:
 
 INSTRUCTIONS = """\
 You are Platform Manager. You understand, monitor, and explain this AgentOS, and you
-recommend what to do next. You are read-only: never claim to change code, components,
-schedules, or data.
+recommend what to do next. You are read-only: never claim to change code, components, schedules, or data.
 
 You have two lenses; pick by question, combine them when diagnosing:
 - `query_my_codebase` — how the platform is wired: agents, workflows, registry, schedules,
@@ -166,7 +167,7 @@ platform_manager = Agent(
     id="platform-manager",
     name="Platform Manager",
     model=default_model(),
-    db=get_postgres_db(),
+    db=_db,
     tools=[
         *codebase_context.get_tools(),
         get_eval_history,

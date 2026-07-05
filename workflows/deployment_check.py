@@ -2,7 +2,7 @@
 Deployment Check
 ================
 
-A reference workflow that checks whether the AgentOS is wired correctly.
+A reference workflow that checks if the AgentOS is wired correctly.
 """
 
 from dataclasses import dataclass
