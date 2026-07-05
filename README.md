@@ -20,6 +20,48 @@ Trace data, agent code, evals, and system logs are all available to coding agent
 
 ## Get Started
 
+The fastest way in is to let a coding agent do the setup. Copy the prompt below into Claude Code, Cursor, Codex — any coding agent that can run shell commands — and it takes you from zero to a running, connected platform, stopping only when it needs you (an API key, a Docker install, a choice of frontends):
+
+```text
+Set up AgentOS — one agent backend for every frontend — on this machine.
+
+Work step by step and verify each step before moving to the next. When a step
+needs me (an API key, a Docker install, a sign-in), stop, tell me exactly what
+to do, and wait for my confirmation. Never print secrets.
+
+1. Clone https://github.com/agno-agi/agentos-railway.git into ./agentos and cd
+   in. Then read AGENTS.md end to end — it is the source of truth for how this
+   platform works and answers most questions you'll hit along the way.
+2. Run `cp example.env .env`, open .env for me, and ask me to set
+   OPENAI_API_KEY. Verify the sk-*** placeholder was replaced, without ever
+   echoing the key.
+3. Confirm `docker info` succeeds. If Docker is missing, don't install it
+   yourself — ask me to install Docker Desktop and wait until it's running.
+4. Start the platform with `docker compose up -d --build`, then poll
+   http://localhost:8000/docs until it returns 200 (first build takes a few
+   minutes). If it never comes up, read `docker compose logs agentos-api` and
+   fix what you find.
+5. Prove it end to end with ./scripts/mcp_check.sh — it should print "MCP OK"
+   and a real agent answer. Show me that answer: it's my platform talking.
+6. Ask me which frontends I want connected, then set up the ones I pick:
+   - Coding agents (including you): run `uvx agnoctl connect` — it registers
+     http://localhost:8000/mcp in Claude Code, Claude Desktop, Codex, and
+     Cursor, and verifies with a real handshake. Use the default user scope,
+     not --project (that would write a token into the repo).
+   - The AgentOS web UI: walk me through os.agno.com → Connect OS →
+     http://localhost:8000, named "Local AgentOS".
+   - Claude and ChatGPT apps: they can't reach localhost, so offer to deploy
+     first — ./scripts/railway/up.sh (needs the Railway CLI, logged in; the
+     script pauses while I mint a JWT key at os.agno.com). Then I add
+     https://<railway-domain>/mcp as a custom connector in the chat app's
+     connector settings.
+7. Finish with a short summary of what's running and where, plus a few first
+   prompts to try — start with asking Agent Builder to "Build an agent that
+   tracks AI news and writes a daily brief".
+```
+
+Prefer to drive yourself? The same path, by hand:
+
 ### Step 1: Run locally
 
 > **Prerequisite:** [Docker](https://www.docker.com/get-started/) installed and running.
@@ -63,7 +105,7 @@ AgentOS ships an MCP server at `/mcp` (`enable_mcp_server=True` in [`app/main.py
 uvx agnoctl connect
 ```
 
-It auto-detects Claude Code, Claude Desktop, Codex, and Cursor, registers `http://localhost:8000/mcp`, and verifies the connection with a real handshake. The manual fallback for Claude Code is `claude mcp add --transport http agentos http://localhost:8000/mcp`; any other MCP-capable tool points at the same URL. Setting up a fresh machine? Hand [`docs/setup-platform.md`](docs/setup-platform.md) to any coding agent: it takes the human from clone to connected, verifying every step.
+It auto-detects Claude Code, Claude Desktop, Codex, and Cursor, registers `http://localhost:8000/mcp`, and verifies the connection with a real handshake. The manual fallback for Claude Code is `claude mcp add --transport http agentos http://localhost:8000/mcp`; any other MCP-capable tool points at the same URL. Setting up a fresh machine? The [Get Started](#get-started) prompt takes a coding agent from clone to connected, verifying every step.
 
 **Chat apps.** claude.ai and ChatGPT can't reach localhost — deploy first (see below), then add your platform as a connector. In claude.ai: **Settings → Connectors → Add custom connector** → `https://<your-railway-domain>/mcp`. Same URL in ChatGPT's connector settings.
 
