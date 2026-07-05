@@ -5,8 +5,7 @@
 #    MCP Smoke Check
 #
 #    Calls the AgentOS MCP endpoint end to end: handshake, tool count,
-#    then one run_agent call. Runs the client inside the container —
-#    the image ships the `mcp` package, so the host needs nothing.
+#    then one run_agent call. Runs the client inside the container.
 #
 #    Usage:
 #      ./scripts/mcp_check.sh                          # default question
