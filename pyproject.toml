@@ -11,6 +11,7 @@ dependencies = [
   "agno[os,mcp,slack,pgvector,psycopg]==2.7.0a3",
   "openai",
   "parallel-web",
+  "python-dotenv",
 ]
 
 [project.optional-dependencies]

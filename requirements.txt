@@ -242,6 +242,7 @@ python-dateutil==2.9.0.post0
     # via croniter
 python-dotenv==1.2.2
     # via
+    #   agentos (pyproject.toml)
     #   fastmcp-slim
     #   pydantic-settings
 python-multipart==0.0.32
