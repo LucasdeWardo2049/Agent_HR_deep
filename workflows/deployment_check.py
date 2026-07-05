@@ -14,6 +14,7 @@ from agno.workflow.step import Step, StepInput, StepOutput
 from agno.workflow.workflow import Workflow
 from sqlalchemy import create_engine, text
 
+from app.schedules import env_flag
 from db import db_url, get_postgres_db
 
 
@@ -117,6 +118,8 @@ async def _check_mcp() -> CheckResult:
         return _fail("MCP", f"{mcp_url} returned 404 — MCP server not mounted, or the route is stripped upstream.")
     if response.status_code in (401, 403):
         return _pass("MCP", f"{mcp_url} is mounted and auth-gated (HTTP {response.status_code}).")
+    if response.status_code >= 500:
+        return _warn("MCP", f"{mcp_url} is mounted but returned HTTP {response.status_code}.")
     return _pass("MCP", f"{mcp_url} responded (HTTP {response.status_code}).")
 
 
@@ -151,8 +154,8 @@ def _check_reference_components() -> CheckResult:
 
 
 def _check_schedule_flag() -> CheckResult:
-    deploy = getenv("ENABLE_DEPLOY_CHECK", "True") == "True"
-    evals = getenv("ENABLE_SCHEDULED_EVALS", "False") == "True"
+    deploy = env_flag("ENABLE_DEPLOY_CHECK", default=True)
+    evals = env_flag("ENABLE_SCHEDULED_EVALS", default=False)
     if deploy and evals:
         return _pass("Schedule", "Deployment-check and run-evals crons are armed.")
     if deploy:

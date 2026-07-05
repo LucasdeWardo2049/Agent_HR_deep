@@ -12,7 +12,7 @@ from agno.utils.log import log_info, log_warning
 from db import get_postgres_db
 
 
-def _env_flag(name: str, default: bool) -> bool:
+def env_flag(name: str, default: bool) -> bool:
     """Read a boolean env var, accepting 1/true/yes (any casing) as true."""
     value = getenv(name)
     if value is None:
@@ -57,7 +57,7 @@ def register_schedules() -> None:
         log_warning(f"schedules: could not initialize ScheduleManager: {exc}")
         return
 
-    if _env_flag("ENABLE_DEPLOY_CHECK", default=True):
+    if env_flag("ENABLE_DEPLOY_CHECK", default=True):
         _register(
             manager,
             name="deployment-check",
@@ -69,7 +69,7 @@ def register_schedules() -> None:
     else:
         log_info("schedules: deployment-check disabled (ENABLE_DEPLOY_CHECK=False)")
 
-    if _env_flag("ENABLE_SCHEDULED_EVALS", default=False):
+    if env_flag("ENABLE_SCHEDULED_EVALS", default=False):
         _register(
             manager,
             name="run-evals",
