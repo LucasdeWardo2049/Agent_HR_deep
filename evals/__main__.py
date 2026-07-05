@@ -17,15 +17,16 @@ Both log to Postgres through `eval_db`. Connect your AgentOS at os.agno.com to s
 
 # Hydrate os.environ from .env before any module that reads env at import time
 # (db_url, model factories, etc.). Pre-existing shell vars take precedence.
-from evals.dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 import asyncio  # noqa: E402
 import json  # noqa: E402
 import time  # noqa: E402
 from dataclasses import dataclass  # noqa: E402
-from pathlib import Path  # noqa: E402
 from uuid import uuid4  # noqa: E402
 
 import typer  # noqa: E402

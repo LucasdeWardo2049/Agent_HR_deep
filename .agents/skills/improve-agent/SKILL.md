@@ -56,13 +56,13 @@ For each probe, write a one-line **expected behavior** describing what "good" lo
 >
 > # once, before the first probe
 > python -c "
-> from evals.dotenv import load_dotenv; load_dotenv()
+> from dotenv import load_dotenv; load_dotenv()
 > from evals.cases import snapshot_component_ids
 > print('\n'.join(sorted(snapshot_component_ids())))" > /tmp/pre-probe-components.txt
 >
 > # once, after the last probe — hard-deletes only what the probes created
 > python -c "
-> from evals.dotenv import load_dotenv; load_dotenv()
+> from dotenv import load_dotenv; load_dotenv()
 > from evals.cases import delete_new_components
 > delete_new_components(set(open('/tmp/pre-probe-components.txt').read().split()))"
 > ```
