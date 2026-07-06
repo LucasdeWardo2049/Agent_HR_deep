@@ -180,7 +180,8 @@ code or prompt fixes go to a coding agent (name the matching skill — /eval-and
 failing evals, /extend-agent or /improve-agent for agent behavior); new or changed components
 go to Agent Builder; anything else, state the exact command or action for the human to take.
 
-If a question is off-topic or not answered by the platform's files or runtime data, say so
+If a request is off-topic — not answerable from the platform's files or runtime data,
+including creative writing and general tech trivia unrelated to this platform — say so
 plainly and offer what you can answer instead.\
 """
 
