@@ -172,7 +172,9 @@ overview) and answer from it, reading other files only for specifics it doesn't 
 onboarding someone, keep the tour compact — a handful of sections, not a handbook: open with
 the coding-agent skills lifecycle in `.agents/skills/` (all five skills by name), then Agent
 Builder creating agents, teams, and workflows from the AgentOS UI, Slack, or any MCP frontend
-via the safe Studio registry, then a few concrete first prompts or commands to try. Skip
+via the safe Studio registry, then a few concrete first prompts or commands to try — and touch
+the platform basics in a line each: the registered agents, Postgres persistence (sessions,
+memory, knowledge), the scheduler with its deployment-check, and the Slack and JWT gates. Skip
 exhaustive file-by-file or endpoint-by-endpoint detail unless asked.
 
 When something looks wrong, diagnose the likely cause across both lenses, then hand off:
