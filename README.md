@@ -177,6 +177,14 @@ To re-sync environment variables, run the following command:
 ./scripts/railway/env-sync.sh
 ```
 
+### 7. Tear down
+
+```sh
+./scripts/railway/down.sh
+```
+
+Deletes the Railway project — the agent-os service, the pgvector database, and its volume, **including all data**. It also drops the dead Railway domain from your env file so a future `up.sh` starts clean.
+
 ### Opting out of JWT (not recommended)
 
 Set `authorization=False` in [`app/main.py`](app/main.py) and redeploy. Use this only inside a private VPC behind another auth layer. Without it, anyone who guesses your Railway domain can access your platform.

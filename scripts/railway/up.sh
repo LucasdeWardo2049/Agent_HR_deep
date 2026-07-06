@@ -7,6 +7,7 @@
 #    Usage:     ./scripts/railway/up.sh
 #    Redeploy:  ./scripts/railway/redeploy.sh
 #    Sync env:  ./scripts/railway/env-sync.sh
+#    Teardown:  ./scripts/railway/down.sh
 #
 #    Prerequisites:
 #      - Railway CLI installed

@@ -250,7 +250,7 @@ This repo is the Railway sibling of the `agentos-*` deployment family (agentos-d
 The **Railway-specific deploy layer** — what a sibling template swaps out — is exactly:
 
 - [`railway.json`](railway.json)
-- [`scripts/railway/`](scripts/railway/) (`up.sh`, `env-sync.sh`, `redeploy.sh`)
+- [`scripts/railway/`](scripts/railway/) (`up.sh`, `env-sync.sh`, `redeploy.sh`, `down.sh`)
 - the "Deploying to Railway" prose here and in the README
 
 When editing, keep that boundary crisp: platform behavior belongs in the core, Railway mechanics belong in the deploy layer, and nothing in the core should import from or depend on it.
@@ -261,6 +261,7 @@ When editing, keep that boundary crisp: platform behavior belongs in the core, R
 ./scripts/railway/up.sh        # provision Postgres + agent-os service
 ./scripts/railway/env-sync.sh  # sync .env.production (default) or .env
 ./scripts/railway/redeploy.sh  # redeploy after code changes
+./scripts/railway/down.sh      # delete the Railway project (asks for confirmation; --yes to skip)
 ```
 
 `up.sh` creates the domain before deploying and sets `AGENTOS_URL` to it (on Railway and in your env file), so the scheduler is reachable in prod out of the box.
