@@ -2,11 +2,13 @@
 
 AgentOS is a high-performance runtime that gives you one agent server for every client. Build your agents, teams, and workflows once; use the same system across every surface:
 
-1. **Your product.** Add agents to your own app and UI: AgentOS serves a full REST API with 80+ endpoints — runs, sessions, memory, knowledge, and evals.
-2. **Chat interfaces.** Chat with your agents through Slack, WhatsApp, Telegram, and Discord. Slack comes wired in; the rest activate with [Agno interfaces](https://docs.agno.com/agent-os/interfaces/overview).
+1. **Your product.** Add agents to your own application: AgentOS serves a full REST API with 80+ endpoints — runs, sessions, memory, knowledge, and evals.
+2. **Chat interfaces.** Chat with your agents through Slack, WhatsApp, Telegram, Discord. Slack is set-up; for the rest, see [interfaces](https://docs.agno.com/agent-os/interfaces/overview).
 3. **AI apps.** Let Claude, ChatGPT, Cursor, and Claude Code use your AgentOS through the MCP server at `/mcp`.
 4. **Coding agents.** Claude Code, Codex, and Cursor drive the full agent development lifecycle with the skills in [`.agents/skills/`](.agents/skills/).
-5. **AgentOS UI.** A ready-made control plane at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway): chat with every agent, inspect sessions, traces, memory, and eval history. A frontend for your agent platform.
+5. **AgentOS UI.** The control plane for your agent-platform at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway). Chat with agents, inspect sessions, traces, memory, and evals. 
+
+<img width="3298" height="2412" alt="AgentOS" src="https://github.com/user-attachments/assets/40a53a42-d4d2-402b-8e92-742609207957" />
 
 Built on [Agno](https://docs.agno.com). Everything runs in your cloud, your data lives in your database.
 
