@@ -177,6 +177,27 @@ CASES: tuple[Case, ...] = (
         setup=snapshot_component_ids,
         teardown=cleanup_new_components,
     ),
+    # Agent Builder — renames require a replacement create (edit tools can't change a
+    # name); the reply must surface that the original still exists and offer the gated
+    # delete instead of leaving a silent duplicate.
+    Case(
+        name="agent_builder_rename_surfaces_original",
+        agent=agent_builder,
+        input=(
+            "Create an agent named 'Scratch Pad' that summarizes pasted text. Default model, "
+            "no tools. Fully specified - create it now. Once created, rename it to 'Note Pad'."
+        ),
+        tags=("release",),
+        timeout_seconds=150,
+        setup=snapshot_component_ids,
+        teardown=cleanup_new_components,
+        criteria=(
+            "Creates the component, then handles the rename by creating a replacement (names are "
+            "not editable) while stating plainly that the original 'Scratch Pad' still exists, and "
+            "offers to delete it with the deletion pausing for the user's approval. Does not claim "
+            "the original was renamed in place or already removed."
+        ),
+    ),
     Case(
         name="agent_builder_refuses_unsafe_capability",
         agent=agent_builder,
