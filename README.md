@@ -21,7 +21,7 @@ Trace data, agent code, evals, and system logs are all available to coding agent
 
 ## Get Started
 
-The fastest way to get started is to let your coding agent do the setup. Copy the prompt below into Claude Code, Cursor, Codex and it'll take you from zero to a running platform in a few minutes.
+The fastest way to get started is using a coding agent. Copy the prompt below into Claude Code, Cursor or Codex and it'll take you from zero to a running platform.
 
 ```text
 Help me set up an AgentOS on this machine.
@@ -97,17 +97,17 @@ Click **Chat** under **Platform Manager** and ask: "How healthy is the platform?
 
 ## Use your platform from Claude Code and chat apps
 
-AgentOS ships an MCP server at `/mcp` (`enable_mcp_server=True` in [`app/main.py`](app/main.py)), so any MCP client can call your agents, teams, and workflows through tools like `run_agent`, `run_team`, and `run_workflow`.
+AgentOS comes with an MCP server at `/mcp` (enabled by setting `enable_mcp_server=True` in [`app/main.py`](app/main.py)), so any MCP client can call your agents, teams, and workflows through tools like `run_agent`, `run_team`, and `run_workflow`.
 
-**Coding agents.** One command registers the endpoint in every coding agent on the machine:
+**Coding agents.** Register the AgentOS with coding agents on your machine:
 
 ```sh
 uvx agno connect
 ```
 
-It auto-detects Claude Code, Claude Desktop, Codex, and Cursor, registers `http://localhost:8000/mcp`, and verifies the connection with a real handshake. Coding agents run on your machine, which is why `localhost` works for them — the hosted chat apps below need a deployed URL. The manual command for Claude Code is `claude mcp add --transport http agentos http://localhost:8000/mcp`; any other MCP-capable tool points at the same URL.
+It auto-detects Claude Code, Claude Desktop, Codex, and Cursor, registers `http://localhost:8000/mcp`, and verifies the connection. Coding agents run on your machine, which is why `localhost` works for them. Hosted chat apps (like Claude and ChatGPT) need a deployed URL. The manual command for Claude Code is `claude mcp add --transport http agentos http://localhost:8000/mcp`; other MCP-capable tools use the same URL.
 
-**Chat apps.** The Claude and ChatGPT apps can't reach `localhost` — web or desktop, their sessions run in hosted environments, not on your machine. For them, we need to deploy first, then add our platform as a connector. In claude.ai: **Settings → Connectors → Add custom connector** → `https://<your-railway-domain>/mcp`. Same URL in ChatGPT's connector settings.
+**Chat apps.** The Claude and ChatGPT apps can't reach `localhost` because their sessions run in hosted environments, not on your machine. For them, we need to deploy first, then add our platform as a connector. In claude.ai: **Settings → Connectors → Add custom connector** → `https://<your-railway-domain>/mcp`. Same URL in ChatGPT's connector settings. Follow the Run in production section to get setup.
 
 ## Run in production
 
@@ -120,11 +120,11 @@ You can run the platform anywhere that supports containerized images. For the li
 Create a new `.env.production` file for production credentials.
 
 ```sh
-cp .env .env.production          # or cp example.env .env.production if you skipped local setup
+cp .env .env.production          # or cp example.env .env.production
 # Edit .env.production with production values
 ```
 
-`up.sh` reads `.env.production` and falls back to `.env`; `env-sync.sh` syncs `.env.production` by default — pass a path to sync a different file (`./scripts/railway/env-sync.sh .env`). Keeping a separate `.env.production` lets you use different values for local and production: different OpenAI keys, production-only credentials, a different Slack workspace. `.env.production` is gitignored.
+Keeping a separate `.env.production` lets us use different values for local and production: different OpenAI keys, production-only credentials, a different Slack workspace.
 
 ### 2. Deploy
 
@@ -132,11 +132,11 @@ cp .env .env.production          # or cp example.env .env.production if you skip
 ./scripts/railway/up.sh
 ```
 
-This provisions Postgres and the app service on the same private network. Partway through, the script pauses and asks for a JWT verification key — that's production auth, covered next.
+This provisions Postgres and the app service on the same private network. The script pauses and asks for a JWT verification key for authentication (see next section).
 
-### 3. Set production auth
+### 3. Production Auth
 
-Token-Based Authorization is on by default. Without `JWT_VERIFICATION_KEY` or `JWT_JWKS_FILE`, the app refuses to serve traffic. The platform's job is to keep your data private, so the safe default is "refuse to start" without an authentication token.
+Token-Based Authorization is on by default. Without a `JWT_VERIFICATION_KEY` or `JWT_JWKS_FILE`, the app refuses to serve traffic in production. The platform's job is to keep your data private, so the safe default is "refuse to start" without an authentication token.
 
 Token-Based Auth gives you three things:
 
@@ -171,8 +171,6 @@ You can check the logs on the Railway dashboard, or by running the following com
 railway logs --service agent-os
 ```
 
-The platform also verifies itself: the deployment-check workflow runs daily (DB, auth, scheduler, MCP, Slack config) and Platform Manager reads its reports — connect the UI and ask it "How healthy is the platform?" On a fresh deploy the first report lands with the daily cron; to get one immediately, trigger the workflow on demand (`POST /workflows/deployment-check/runs`, or ask for it from any connected frontend).
-
 ### 5. Redeploy after code changes
 
 For one-off updates from your machine, run the following command:
@@ -181,7 +179,7 @@ For one-off updates from your machine, run the following command:
 ./scripts/railway/redeploy.sh
 ```
 
-To auto-deploy on every push to `main`, follow these steps:
+Recommended: Auto-deploy on merge to `main` using:
 
 1. Open the Railway dashboard, your project, the agent-os service, **Settings**.
 2. Under **Source**, click **Connect Repo** and pick your repo.
@@ -203,15 +201,11 @@ Set `authorization=False` in [`app/main.py`](app/main.py) and redeploy. Use this
 
 ## Using the platform
 
-This platform is designed around the **create → improve → evaluate → maintain** workflow.
-
-Create agents/teams/workflows from the UI or using a coding agent, improve and evaluate with the skills, and maintain with a recurring drift sweep.
+This platform is designed so that coding agents can drive the entire **create → improve → evaluate → maintain** lifecycle.
 
 ### Create
 
-**From the UI, chat, or a coding agent.** Open **Agent Builder** and describe the job, as in the quickstart — or reach it through Slack or any MCP frontend. Agent Builder pulls framework details from the Agno docs MCP, picks tools and models from the safe Studio registry, and creates components immediately: creating publishes version 1, later edits stay drafts until published, and only deletes pause for your approval. It runs the component only when you ask.
-
-**From a coding agent.** For agents that live in the repo, open your coding agent of choice (Claude Code, Codex, Cursor) and run:
+Open your coding agent of choice (Claude Code, Codex, Cursor) and run:
 
 ```
 /create-new-agent
@@ -221,16 +215,16 @@ It asks a few questions, generates the agent file in `agents/`, registers it in 
 
 ### Improve
 
-Chat with your agent at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway). Run realistic prompts, try edge cases, watch the traces and sessions.
-
-Then improve your agents by running the following skills:
+Improve your agents by running the following skills:
 
 - **`/extend-agent`** — Add a tool, add a capability, refine the instructions, fix a known bug.
 - **`/improve-agent`** — Claude simulates scenarios from the agent's `INSTRUCTIONS`, runs them against the live container, judges the responses, and edits until they pass.
 
 ### Evaluate
 
-Run the eval suite to check for regressions. The eval cases live in [`evals/cases.py`](evals/cases.py) as tagged `agno.eval.Case`s; agno's eval suite runner executes them and logs results to Postgres, so eval history shows up at os.agno.com next to your sessions and traces. The evals run on the host machine, so set up the venv with `./scripts/venv_setup.sh && source .venv/bin/activate`, then:
+Run the eval suite to check for regressions. The evals live in [`evals/cases.py`](evals/cases.py); and run history shows up at os.agno.com next to your sessions and traces.
+
+The evals run on the host machine, so set up the venv with `./scripts/venv_setup.sh && source .venv/bin/activate`, then:
 
 ```sh
 python -m evals --tag smoke      # fast checks of the self-driving surfaces
@@ -243,13 +237,9 @@ If a case fails, run **`/eval-and-improve`** — it diagnoses each failure, fixe
 
 ### Maintain
 
-Because the repo is managed primarily by coding agents, it moves fast. Run `/review-and-improve` before a release or after a refactor: it sweeps for drift between docs, code, and config, auto-fixes mechanical drift like stale paths and missing env vars, and flags anything bigger.
-
-From chat, ask **Platform Manager** for a health check any time — it reads the latest deployment-check report and eval history, diagnoses, and names the skill or action to fix what it finds.
+Because the repo is managed by coding agents, it moves fast. Run `/review-and-improve` before a release or after a refactor: it sweeps for drift between docs, code, and config, auto-fixes mechanical drift like stale paths and missing env vars, and flags anything bigger.
 
 ## Environment variables
-
-`compose.yaml` sets the dev defaults (`RUNTIME_ENV=dev`, `AGNO_DEBUG=True`, `WAIT_FOR_DB=True`) so local Docker skips JWT and waits for Postgres before serving.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
