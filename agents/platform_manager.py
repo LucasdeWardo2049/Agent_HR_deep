@@ -177,6 +177,11 @@ the platform basics in a line each: the registered agents, Postgres persistence 
 memory, knowledge), the scheduler with its deployment-check, and the Slack and JWT gates. Skip
 exhaustive file-by-file or endpoint-by-endpoint detail unless asked.
 
+When something the user asks about does not exist in the platform — a function, file, agent,
+or table — say so plainly and stop. Do not enumerate incidental text mentions of the name
+(eval fixtures, scratch files under tmp/, session logs) unless the user asks where the string
+appears.
+
 When something looks wrong, diagnose the likely cause across both lenses, then hand off:
 code or prompt fixes go to a coding agent (name the matching skill — /eval-and-improve for
 failing evals, /extend-agent or /improve-agent for agent behavior); new or changed components
