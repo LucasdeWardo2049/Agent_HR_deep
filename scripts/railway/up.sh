@@ -65,10 +65,12 @@ persist_multiline_env_var() {
     local key="$1" value="$2" file="$3" tmp line skipping=0 value_part
     [[ -z "$file" ]] && return
     if [[ ! -f "$file" ]]; then
-        printf '%s=%s\n' "$key" "$value" > "$file"
+        printf '%s="%s"\n' "$key" "$value" > "$file"
         return
     fi
 
+    # Values are written quoted so compose's env_file parser (and every script
+    # parser here, which strips quotes) reads the multi-line PEM as one variable.
     tmp="$(mktemp)"
     while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ "$skipping" == 1 ]]; then
@@ -88,7 +90,7 @@ persist_multiline_env_var() {
     done < "$file"
 
     [[ -s "$tmp" ]] && printf '\n' >> "$tmp"
-    printf '%s=%s\n' "$key" "$value" >> "$tmp"
+    printf '%s="%s"\n' "$key" "$value" >> "$tmp"
     cat "$tmp" > "$file"
     rm -f "$tmp"
 }
