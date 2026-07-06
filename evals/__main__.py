@@ -9,7 +9,7 @@ python -m evals --json-output out.json  # write machine-readable results
 python -m evals -v                      # stream the agent's run with full panels
 
 Agno's eval runner runs each case and evaluates the response with `AgentAsJudgeEval`
-(when `criteria` is set) or `ReliabilityEval` (when `expected_tool_calls` is set).
+(when `criteria` is set) and/or `ReliabilityEval` (when `expected_tool_calls` is set).
 
 Both log to Postgres through `eval_db`. Connect your AgentOS at os.agno.com to see history.
 """
