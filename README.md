@@ -43,16 +43,18 @@ to do, and wait for my input. Never read or print secrets.
 5. Prove it end to end with ./scripts/mcp_check.sh — it should print "MCP OK"
    and a real agent answer. Show me that answer: it's my platform talking.
 6. Ask me which frontends I want connected, then set up the ones I pick:
-   - Coding agents (including you): run `uvx agnoctl connect` — it registers
+   - Coding agents (including you): run `uvx agno connect` — it registers
      http://localhost:8000/mcp in Claude Code, Claude Desktop, Codex, and
      Cursor, and verifies with a real handshake. Use the default user scope,
      not --project (that would write a token into the repo).
    - The AgentOS web UI: walk me through os.agno.com → Connect OS →
      http://localhost:8000, named "Local AgentOS".
-   - Claude and ChatGPT apps: they can't reach localhost, so work with me on
-     deploying to production first using ./scripts/railway/up.sh (needs the Railway CLI, logged in; the script pauses while I mint a JWT key at os.agno.com). Then I add
-     https://<railway-domain>/mcp as a custom connector in the chat app's
-     connector settings.
+   - Claude and ChatGPT apps (web or desktop): their sessions run in the
+     cloud and can't reach localhost, so work with me on deploying to
+     production first using ./scripts/railway/up.sh (needs the Railway CLI,
+     logged in; the script pauses while I mint a JWT key at os.agno.com).
+     Then I add https://<railway-domain>/mcp as a custom connector in the
+     chat app's connector settings.
 7. Finish with a short summary of what's running and where, plus a few first
    prompts to try — start with asking Agent Builder to "Build an agent that
    tracks AI news and writes a daily brief".
@@ -100,18 +102,12 @@ AgentOS ships an MCP server at `/mcp` (`enable_mcp_server=True` in [`app/main.py
 **Coding agents.** One command registers the endpoint in every coding agent on the machine:
 
 ```sh
-uvx agnoctl connect
+uvx agno connect
 ```
 
-It auto-detects Claude Code, Claude Desktop, Codex, and Cursor, registers `http://localhost:8000/mcp`, and verifies the connection with a real handshake. The manual fallback for Claude Code is `claude mcp add --transport http agentos http://localhost:8000/mcp`; any other MCP-capable tool points at the same URL. Setting up a fresh machine? The [Get Started](#get-started) prompt takes a coding agent from clone to connected, verifying every step.
+It auto-detects Claude Code, Claude Desktop, Codex, and Cursor, registers `http://localhost:8000/mcp`, and verifies the connection with a real handshake. Coding agents run on your machine, which is why `localhost` works for them — the hosted chat apps below need a deployed URL. The manual command for Claude Code is `claude mcp add --transport http agentos http://localhost:8000/mcp`; any other MCP-capable tool points at the same URL.
 
-**Chat apps.** claude.ai and ChatGPT can't reach localhost — deploy first (see below), then add your platform as a connector. In claude.ai: **Settings → Connectors → Add custom connector** → `https://<your-railway-domain>/mcp`. Same URL in ChatGPT's connector settings.
-
-**Machine access in production.** `/mcp` sits behind the same Token-Based Authorization as the rest of the API, and it accepts two kinds of token. For a machine, mint a service-account PAT — `uvx agnoctl connect` does it for you, or `POST /service-accounts` returns an `agno_pat_…` token directly, with default scopes that cover `run_agent`, `run_team`, and `run_workflow`. JWTs minted at os.agno.com work too. Send either as `Authorization: Bearer <token>`. Locally (`RUNTIME_ENV=dev`) no token is needed.
-
-## Portable core vs. deploy layer
-
-This repo is the Railway sibling of the `agentos-*` deployment family. The agent backend — `agents/`, `app/`, `db/`, `workflows/`, `evals/`, the MCP server, the interfaces, and the coding-agent skills — is **portable core, identical across the family**. The **Railway-specific deploy layer** is exactly [`railway.json`](railway.json), [`scripts/railway/`](scripts/railway/), and the [Run in production](#run-in-production) section below; a sibling template (agentos-aws, agentos-fly, …) swaps only that. `Dockerfile`, `compose.yaml`, and `scripts/entrypoint.sh` are shared local-dev/runtime infra, not Railway-specific.
+**Chat apps.** The Claude and ChatGPT apps can't reach `localhost` — web or desktop, their sessions run in hosted environments, not on your machine. For them, we need to deploy first, then add our platform as a connector. In claude.ai: **Settings → Connectors → Add custom connector** → `https://<your-railway-domain>/mcp`. Same URL in ChatGPT's connector settings.
 
 ## Run in production
 
