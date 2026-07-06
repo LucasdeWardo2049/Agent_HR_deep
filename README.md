@@ -1,6 +1,6 @@
 # AgentOS: the agent backend for every frontend
 
-AgentOS is a high-performance agent runtime that gives you one agent server for every client. Define your agents, teams, and workflows once; use the same system across every surface:
+AgentOS is a high-performance runtime that gives you one agent server for every client. Build your agents, teams, and workflows once; use the same system across every surface:
 
 1. **Your product.** Add agents to your own app and UI: AgentOS serves a full REST API with 80+ endpoints — runs, sessions, memory, knowledge, and evals.
 2. **Chat interfaces.** Chat with your agents through Slack, WhatsApp, Telegram, and Discord. Slack comes wired in; the rest activate with [Agno interfaces](https://docs.agno.com/agent-os/interfaces/overview).
