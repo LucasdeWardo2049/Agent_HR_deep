@@ -8,9 +8,8 @@ python -m evals --name <case>           # run one case
 python -m evals --json-output out.json  # write machine-readable results
 python -m evals -v                      # stream the agent's run with full panels
 
-The heavy lifting lives in agno's eval suite runner (`agno.eval.cli`): each case
-runs the agent once, then optionally checks the response with `AgentAsJudgeEval`
-(when `criteria` is set) and `ReliabilityEval` (when `expected_tool_calls` is set).
+Agno's eval runner runs each case and evaluates the response with `AgentAsJudgeEval`
+(when `criteria` is set) or `ReliabilityEval` (when `expected_tool_calls` is set).
 
 Both log to Postgres through `eval_db`. Connect your AgentOS at os.agno.com to see history.
 """

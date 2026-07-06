@@ -2,17 +2,15 @@
 Eval Cases
 ==========
 
-Each case is an `agno.eval.Case`: one input to one agent, plus optional checks —
+Each case is an `agno.eval.Case`
 
-- **judge** — `AgentAsJudgeEval` scores the response against `criteria`
-  (binary pass/fail) using an LLM.
-- **reliability** — `ReliabilityEval` checks which tools fired against
-  `expected_tool_calls`.
+- When `criteria` is set, `AgentAsJudgeEval` scores the response (binary pass/fail) using an LLM.
+- When `expected_tool_calls` is set, `ReliabilityEval` checks if `expected_tool_calls` were fired.
 
 Results are stored in Postgres via `eval_db` and are visible at os.agno.com.
 
-Add a case below, tag it (`smoke`, `release`, `live`), then run
-`python -m evals --tag <tag>`.
+Add a case below, tag it (`smoke`, `release`, `live`), then run:
+`python -m evals --tag <tag>`
 """
 
 import asyncio
@@ -101,10 +99,10 @@ CASES: tuple[Case, ...] = (
         # Broad self-description means the workspace sub-agent reads several files.
         timeout_seconds=150,
         criteria=(
-            "Answers from this repository's code (not generic AgentOS documentation): names the three "
-            "registered agents (`web-search`, `platform-manager`, `agent-builder`), the `deployment-check` and "
-            "`run-evals` workflows, and the scheduler setup (daily deployment-check cron on by "
-            "default, scheduled evals opt-in)."
+            "Answers from this repository's code (not generic AgentOS documentation): identifies the three "
+            "registered agents — WebSearch, Platform Manager, and Agent Builder (matching by display name, "
+            "agent id, or agent file path all count) — plus the `deployment-check` and `run-evals` workflows, "
+            "and the scheduler setup (daily deployment-check cron on by default, scheduled evals opt-in)."
         ),
         expected_tool_calls=("query_my_codebase",),
     ),
