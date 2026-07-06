@@ -284,7 +284,7 @@ docker compose up -d --build
 docker compose up -d --build
 ./scripts/validate.sh && python -m evals --tag smoke
 
-# Publish the official multi-arch image agnohq/agentos (maintainer-only; needs docker login)
+# Build a multi-arch image (maintainer-only)
 ./scripts/build_image.sh
 
 # Tail Railway logs
