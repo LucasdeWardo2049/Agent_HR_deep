@@ -1,42 +1,41 @@
-# AgentOS: one agent backend for every frontend
+# AgentOS: the agent backend for every frontend
 
-An agent server that works with any client. Built on [Agno](https://docs.agno.com), everything runs in your cloud and your data lives in your database.
+AgentOS is a high-performance agent runtime that gives you one agent server for every client. Define your agents, teams, and workflows once; use the same system across every surface:
 
-- **REST** for programmatic use — a full API at `:8000` runs your agents, teams, and workflows.
-- **Chat interfaces** for humans — Slack is wired in and lights up when its env vars are set; WhatsApp, Telegram, and Discord mirror the same pattern with the matching [Agno interface](https://docs.agno.com/agent-os/interfaces/overview).
-- **MCP** for AI apps — an MCP server at `/mcp` lets Claude, ChatGPT, Cursor, and Claude Code drive the same agents.
-- **Coding agents** work on the repo itself — five skills in [`.agents/skills/`](.agents/skills/) cover the full agent development lifecycle.
+1. **Your product.** Add agents to your own app and UI: AgentOS serves a full REST API with 80+ endpoints — runs, sessions, memory, knowledge, and evals.
+2. **Chat interfaces.** Chat with your agents through Slack, WhatsApp, Telegram, and Discord. Slack comes wired in; the rest activate with [Agno interfaces](https://docs.agno.com/agent-os/interfaces/overview).
+3. **AI apps.** Let Claude, ChatGPT, Cursor, and Claude Code use your AgentOS through the MCP server at `/mcp`.
+4. **Coding agents.** Claude Code, Codex, and Cursor drive the full agent development lifecycle with the skills in [`.agents/skills/`](.agents/skills/).
+5. **AgentOS UI.** A ready-made control plane at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway): chat with every agent, inspect sessions, traces, memory, and eval history. A frontend for your agent platform.
 
-This is the Railway template of the `agentos-*` deployment family: the agent backend is identical across siblings; only the deploy layer differs — see [Portable core vs. deploy layer](#portable-core-vs-deploy-layer).
+Built on [Agno](https://docs.agno.com). Everything runs in your cloud, your data lives in your database.
 
-## Driven by agents
+## Built for agents
 
-The backend ships self-driving:
+This codebase comes with:
 
-- **Two flagship agents** run the platform from any frontend — the UI, Slack, or any MCP client. **Agent Builder** creates agents, teams, and workflows through AgentOS Studio tools, grounded by the Agno docs MCP and a safe registry. **Platform Manager** understands, monitors, and explains the platform: codebase wiring, eval history, deployment checks, schedules. (**WebSearch** rounds out the trio as the simplest possible agent — the sample to copy.)
+- **Two flagship agents** that help you run the platform from your favorite AI Apps like Claude and ChatGPT. **Agent Builder** creates agents, teams, and workflows using the AgentOS Studio. **Platform Manager** understands, monitors, and explains the platform: codebase questions, eval history, deployment checks, schedules.
 - **Coding-agent skills** let Claude Code, Codex, Cursor, and other coding agents build, test, and improve the platform automatically — see [Using the platform](#using-the-platform).
 
 Trace data, agent code, evals, and system logs are all available to coding agents, so the platform can inspect and improve itself end to end.
 
 ## Get Started
 
-The fastest way in is to let a coding agent do the setup. Copy the prompt below into Claude Code, Cursor, Codex — any coding agent that can run shell commands — and it takes you from zero to a running, connected platform, stopping only when it needs you (an API key, a Docker install, a choice of frontends):
+The fastest way to get started is to let your coding agent do the setup. Copy the prompt below into Claude Code, Cursor, Codex and it'll take you from zero to a running platform in a few minutes.
 
 ```text
-Set up AgentOS — one agent backend for every frontend — on this machine.
+Help me set up an AgentOS on this machine.
 
 Work step by step and verify each step before moving to the next. When a step
 needs me (an API key, a Docker install, a sign-in), stop, tell me exactly what
-to do, and wait for my confirmation. Never print secrets.
+to do, and wait for my input. Never read or print secrets.
 
-1. Clone https://github.com/agno-agi/agentos-railway.git into ./agentos and cd
-   in. Then read AGENTS.md end to end — it is the source of truth for how this
+1. Clone https://github.com/agno-agi/agentos-railway.git and cd in.
+   Then read AGENTS.md end to end — it is the source of truth for how this
    platform works and answers most questions you'll hit along the way.
-2. Run `cp example.env .env`, open .env for me, and ask me to set
-   OPENAI_API_KEY. Verify the sk-*** placeholder was replaced, without ever
-   echoing the key.
-3. Confirm `docker info` succeeds. If Docker is missing, don't install it
-   yourself — ask me to install Docker Desktop and wait until it's running.
+2. Run `cp example.env .env`, open .env in my favorite editor, and ask me to set the OPENAI_API_KEY.
+3. Confirm docker is installed, running and `docker info` succeeds.
+   If Docker is missing, ask me to install Docker Desktop and wait until it's running.
 4. Start the platform with `docker compose up -d --build`, then poll
    http://localhost:8000/docs until it returns 200 (first build takes a few
    minutes). If it never comes up, read `docker compose logs agentos-api` and
@@ -50,9 +49,8 @@ to do, and wait for my confirmation. Never print secrets.
      not --project (that would write a token into the repo).
    - The AgentOS web UI: walk me through os.agno.com → Connect OS →
      http://localhost:8000, named "Local AgentOS".
-   - Claude and ChatGPT apps: they can't reach localhost, so offer to deploy
-     first — ./scripts/railway/up.sh (needs the Railway CLI, logged in; the
-     script pauses while I mint a JWT key at os.agno.com). Then I add
+   - Claude and ChatGPT apps: they can't reach localhost, so work with me on
+     deploying to production first using ./scripts/railway/up.sh (needs the Railway CLI, logged in; the script pauses while I mint a JWT key at os.agno.com). Then I add
      https://<railway-domain>/mcp as a custom connector in the chat app's
      connector settings.
 7. Finish with a short summary of what's running and where, plus a few first
@@ -60,7 +58,7 @@ to do, and wait for my confirmation. Never print secrets.
    tracks AI news and writes a daily brief".
 ```
 
-Prefer to drive yourself? The same path, by hand:
+## Manual Setup
 
 ### Step 1: Run locally
 
@@ -177,7 +175,7 @@ You can check the logs on the Railway dashboard, or by running the following com
 railway logs --service agent-os
 ```
 
-The platform also verifies itself: the deployment-check workflow runs daily (DB, auth, scheduler, MCP, Slack config) and Platform Manager reads its reports — connect the UI and ask it "How healthy is the platform?"
+The platform also verifies itself: the deployment-check workflow runs daily (DB, auth, scheduler, MCP, Slack config) and Platform Manager reads its reports — connect the UI and ask it "How healthy is the platform?" On a fresh deploy the first report lands with the daily cron; to get one immediately, trigger the workflow on demand (`POST /workflows/deployment-check/runs`, or ask for it from any connected frontend).
 
 ### 5. Redeploy after code changes
 
@@ -236,10 +234,13 @@ Then improve your agents by running the following skills:
 
 ### Evaluate
 
-Run the eval suite to check for regressions. The eval cases live in [`evals/cases.py`](evals/cases.py) as tagged `agno.eval.Case`s; agno's eval suite runner executes them. The evals run on the host machine, so set up the venv with `./scripts/venv_setup.sh && source .venv/bin/activate`, then:
+Run the eval suite to check for regressions. The eval cases live in [`evals/cases.py`](evals/cases.py) as tagged `agno.eval.Case`s; agno's eval suite runner executes them and logs results to Postgres, so eval history shows up at os.agno.com next to your sessions and traces. The evals run on the host machine, so set up the venv with `./scripts/venv_setup.sh && source .venv/bin/activate`, then:
 
 ```sh
-python -m evals --tag smoke     # fast checks of the self-driving surfaces
+python -m evals --tag smoke      # fast checks of the self-driving surfaces
+python -m evals --tag release    # broader pre-release confidence
+python -m evals --name <case>    # one case while iterating
+python -m evals -v               # stream the full run with rich panels
 ```
 
 If a case fails, run **`/eval-and-improve`** — it diagnoses each failure, fixes what's in scope, and loops until green.

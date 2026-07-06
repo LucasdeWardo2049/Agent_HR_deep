@@ -277,6 +277,12 @@ The Railway *project* is `agentos-railway`; the app *service* is `agent-os`.
 ./scripts/generate_requirements.sh   # keeps existing pins; add `upgrade` to refresh every pin
 docker compose up -d --build
 
+# Bump agno (alpha, rc, and final releases are the same flow)
+# 1. Edit the agno pin in pyproject.toml
+./scripts/generate_requirements.sh   # agnoctl follows automatically via agno's requirement
+docker compose up -d --build
+./scripts/validate.sh && python -m evals --tag smoke
+
 # Build a multi-arch image (maintainer-only)
 ./scripts/build_image.sh
 
