@@ -6,7 +6,7 @@ AgentOS is a high-performance runtime that gives you one agent server for every 
 2. **Chat interfaces.** Chat with your agents through Slack, WhatsApp, Telegram, Discord. Slack is set-up; for the rest, see [interfaces](https://docs.agno.com/agent-os/interfaces/overview).
 3. **AI apps.** Let Claude, ChatGPT, Cursor, and Claude Code use your AgentOS through the MCP server at `/mcp`.
 4. **Coding agents.** Claude Code, Codex, and Cursor drive the full agent development lifecycle with the skills in [`.agents/skills/`](.agents/skills/).
-5. **AgentOS UI.** The control plane for your agent-platform at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway). Chat with agents, inspect sessions, traces, memory, and evals. 
+5. **AgentOS UI.** The control plane for your agent-platform at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway). Chat with agents, inspect sessions, traces, memory, and evals.
 
 <img width="3298" height="2412" alt="AgentOS" src="https://github.com/user-attachments/assets/40a53a42-d4d2-402b-8e92-742609207957" />
 
@@ -28,38 +28,18 @@ The fastest way to get started is using a coding agent. Copy the prompt below in
 ```text
 Help me set up an AgentOS on this machine.
 
-Work step by step and verify each step before moving to the next. When a step
-needs me (an API key, a Docker install, a sign-in), stop, tell me exactly what
-to do, and wait for my input. Never read or print secrets.
+Work step by step and verify each step before moving to the next. When a step needs me (an API key, a Docker install, a sign-in), stop, tell me exactly what to do, and wait for my input. Never read or print secrets.
 
-1. Clone https://github.com/agno-agi/agentos-railway.git and cd in.
-   Then read AGENTS.md end to end — it is the source of truth for how this
-   platform works and answers most questions you'll hit along the way.
+1. Clone https://github.com/agno-agi/agentos-railway.git and cd in. Then read AGENTS.md end to end — it is the source of truth for how this platform works and answers most questions you'll hit along the way.
 2. Run `cp example.env .env`, open .env in my favorite editor, and ask me to set the OPENAI_API_KEY.
-3. Confirm docker is installed, running and `docker info` succeeds.
-   If Docker is missing, ask me to install Docker Desktop and wait until it's running.
-4. Start the platform with `docker compose up -d --build`, then poll
-   http://localhost:8000/docs until it returns 200 (first build takes a few
-   minutes). If it never comes up, read `docker compose logs agentos-api` and
-   fix what you find.
-5. Prove it end to end with ./scripts/mcp_check.sh — it should print "MCP OK"
-   and a real agent answer. Show me that answer: it's my platform talking.
+3. Confirm docker is installed, running and `docker info` succeeds. If Docker is missing, ask me to install Docker Desktop and wait until it's running.
+4. Start the platform with `docker compose up -d --build`, then poll http://localhost:8000/docs until it returns 200 (first build takes a few minutes). If it never comes up, read `docker compose logs agentos-api` and fix what you find.
+5. Prove it end to end with ./scripts/mcp_check.sh — it should print "MCP OK" and a real agent answer. Show me that answer: it's my platform talking.
 6. Ask me which frontends I want connected, then set up the ones I pick:
-   - Coding agents (including you): run `uvx agno connect` — it registers
-     http://localhost:8000/mcp in Claude Code, Claude Desktop, Codex, and
-     Cursor, and verifies with a real handshake. Use the default user scope,
-     not --project (that would write a token into the repo).
-   - The AgentOS web UI: walk me through os.agno.com → Connect OS →
-     http://localhost:8000, named "Local AgentOS".
-   - Claude and ChatGPT apps (web or desktop): their sessions run in the
-     cloud and can't reach localhost, so work with me on deploying to
-     production first using ./scripts/railway/up.sh (needs the Railway CLI,
-     logged in; the script pauses while I mint a JWT key at os.agno.com).
-     Then I add https://<railway-domain>/mcp as a custom connector in the
-     chat app's connector settings.
-7. Finish with a short summary of what's running and where, plus a few first
-   prompts to try — start with asking Agent Builder to "Build an agent that
-   tracks AI news and writes a daily brief".
+   - Coding agents (including you): run `uvx agno connect` — it registers http://localhost:8000/mcp in Claude Code, Claude Desktop, Codex, and Cursor, and verifies with a real handshake. Use the default user scope, not --project (that would write a token into the repo).
+   - The AgentOS web UI: walk me through os.agno.com → Connect OS → http://localhost:8000, named "Local AgentOS".
+   - Claude and ChatGPT apps (web or desktop): their sessions run in the cloud and can't reach localhost, so work with me on deploying to production first using ./scripts/railway/up.sh (needs the Railway CLI, logged in; the script pauses while I mint a JWT key at os.agno.com). Then I add https://<railway-domain>/mcp as a custom connector in thechat app's connector settings.
+7. Finish with a short summary of what's running and where, plus a few first prompts to try — start with asking Agent Builder to "Build an agent that tracks AI news and writes a daily brief".
 ```
 
 ## Manual Setup
