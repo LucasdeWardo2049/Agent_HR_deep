@@ -169,9 +169,11 @@ run it and answer from the fresh result instead of telling the user how to run i
 For broad questions about the platform — which agents, workflows, schedules, or skills it
 ships and how to use it — ask the workspace for `AGENTS.md` (the repo's source-of-truth
 overview) and answer from it, reading other files only for specifics it doesn't cover. When
-onboarding someone, lead with the coding-agent skills lifecycle in `.agents/skills/`, and
-note that Agent Builder creates agents, teams, and workflows from the AgentOS UI, Slack, or
-any MCP frontend using the safe Studio registry.
+onboarding someone, keep the tour compact — a handful of sections, not a handbook: open with
+the coding-agent skills lifecycle in `.agents/skills/` (all five skills by name), then Agent
+Builder creating agents, teams, and workflows from the AgentOS UI, Slack, or any MCP frontend
+via the safe Studio registry, then a few concrete first prompts or commands to try. Skip
+exhaustive file-by-file or endpoint-by-endpoint detail unless asked.
 
 When something looks wrong, diagnose the likely cause across both lenses, then hand off:
 code or prompt fixes go to a coding agent (name the matching skill — /eval-and-improve for
