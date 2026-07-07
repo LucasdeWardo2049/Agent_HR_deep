@@ -204,9 +204,14 @@ sleep 15
 echo ""
 echo -e "${BOLD}Creating application service...${NC}"
 echo ""
-# Forward every relevant env var the first deploy might need. Optional
-# keys are only included when set — Railway CLI rejects empty values.
+# Forward relevant env vars the first deploy might need.
 # Use ./scripts/railway/env-sync.sh to sync the rest from .env later.
+#
+# Secrets (OPENAI_API_KEY) are deliberately NOT passed via
+# `railway add -v`: the CLI's non-interactive `add` echoes every `-v` value to
+# stdout, so the API key would print in cleartext (and into any captured deploy
+# log). They go in below via `railway variables --set … > /dev/null`, which is
+# quiet — the same path already used for AGENTOS_URL / JWT.
 RAILWAY_VARS=(
     -v "DB_USER=${DB_USER:-ai}"
     -v "DB_PASS=${DB_PASS:-ai}"
@@ -216,9 +221,7 @@ RAILWAY_VARS=(
     -v "DB_DRIVER=postgresql+psycopg"
     -v "WAIT_FOR_DB=True"
     -v "PORT=8000"
-    -v "OPENAI_API_KEY=${OPENAI_API_KEY}"
 )
-[[ -n "$PARALLEL_API_KEY" ]] && RAILWAY_VARS+=(-v "PARALLEL_API_KEY=${PARALLEL_API_KEY}")
 [[ -n "$RUNTIME_ENV" ]] && RAILWAY_VARS+=(-v "RUNTIME_ENV=${RUNTIME_ENV}")
 [[ -n "$JWT_JWKS_FILE" ]] && RAILWAY_VARS+=(-v "JWT_JWKS_FILE=${JWT_JWKS_FILE}")
 # Forward AGENTOS_URL only if the env file already pinned one; otherwise it's
@@ -226,6 +229,11 @@ RAILWAY_VARS=(
 [[ -n "$AGENTOS_URL" ]] && RAILWAY_VARS+=(-v "AGENTOS_URL=${AGENTOS_URL}")
 
 railway add -s agent-os "${RAILWAY_VARS[@]}"
+
+# Secret vars, set quietly so their values never show up in the terminal or logs.
+railway variables --set "OPENAI_API_KEY=${OPENAI_API_KEY}" --service agent-os > /dev/null 2>&1
+[[ -n "$PARALLEL_API_KEY" ]] && \
+    railway variables --set "PARALLEL_API_KEY=${PARALLEL_API_KEY}" --service agent-os > /dev/null 2>&1
 
 # Domain before deploy — capture it so AGENTOS_URL is set on the service
 # *before* it serves, and so os.agno.com can mint JWT_VERIFICATION_KEY against
