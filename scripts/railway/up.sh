@@ -171,7 +171,7 @@ fi
 
 # Preflight
 if ! command -v railway &> /dev/null; then
-    echo "Railway CLI not found. Install: https://docs.railway.app/guides/cli"
+    echo "Railway CLI not found. Install: https://docs.railway.com/cli#installing-the-cli"
     exit 1
 fi
 

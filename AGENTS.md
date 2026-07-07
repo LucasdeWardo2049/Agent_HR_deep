@@ -245,7 +245,7 @@ For Discord, Telegram, WhatsApp, and custom UIs, mirror the Slack conditional pa
 
 ## Portable core vs. deploy layer
 
-This repo is the Railway sibling of the `agentos-*` deployment family (agentos-docker, agentos-aws, agentos-fly, agentos-gcp, agentos-azure, agentos-modal). Everything that defines the platform is **portable core — identical across the family**: `agents/`, `app/`, `db/`, `workflows/`, `evals/`, the MCP server wiring, the interfaces, and the coding-agent skills in `.agents/skills/`. `Dockerfile`, `compose.yaml`, and `scripts/entrypoint.sh` are shared local-dev/runtime infra, also not deployment-specific.
+This repo is the reference sibling of the `agentos-*` deployment family. Everything that defines the platform is **portable core — identical across the family**: `agents/`, `app/`, `db/`, `workflows/`, `evals/`, the MCP server wiring, the interfaces, and the coding-agent skills in `.agents/skills/`. `Dockerfile`, `compose.yaml`, and `scripts/entrypoint.sh` are shared local-dev/runtime infra, also not deployment-specific.
 
 The **Railway-specific deploy layer** — what a sibling template swaps out — is exactly:
 
