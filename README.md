@@ -88,7 +88,7 @@ uvx agno connect
 It auto-detects Claude Code, Claude Desktop, Codex, and Cursor and registers `http://localhost:8000/mcp`. After a successful connection, open one of these apps and ask:
 
 ```text
-can you access my local agentos?
+can you access my agentos mcp?
 ```
 
 **claude.ai and ChatGPT (web).** Hosted AI apps reach your platform over the internet and sign in with **OAuth**. Deploy to production (below) and add `https://<domain>/mcp` as a remote connector.
