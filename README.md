@@ -2,7 +2,7 @@
 
 AgentOS is a secure, scalable backend for building agents once and making them available everywhere.
 
-1. **AI apps.** Claude and ChatGPT can use your agents using the MCP server at `/mcp`.
+1. **AI apps.** Claude and ChatGPT can use your agents through the MCP server at `/mcp`.
 2. **Chat interfaces.** Chat with your agents from Slack, WhatsApp, Telegram, and Discord.
 3. **Coding agents.** Let Claude Code and Codex run your platform using the skills in [`.agents/skills/`](.agents/skills/).
 4. **Your product.** Embed agents directly into your product with the AgentOS REST API: 80+ endpoints for runs, sessions, memory, knowledge, evals, and more.
@@ -87,15 +87,15 @@ uvx agno connect
 
 It auto-detects Claude Code, Claude Desktop, Codex, and Cursor and registers `http://localhost:8000/mcp`. After a successful connection, open one of these apps and ask:
 
-```sh
+```text
 can you access my local agentos?
 ```
 
-**claude.ai and ChatGPT (web).** The hosted apps need a remote MCP server with **OAuth** (or with no auth at all). To connect to them, follow the production setup below.
+**claude.ai and ChatGPT (web).** Hosted AI apps reach your platform over the internet and sign in with **OAuth**. Deploy to production (below) and add `https://<domain>/mcp` as a remote connector.
 
 ## Run in production
 
-You can run the platform anywhere that supports containerized images. For the lightest lift, the codebase comes with scripts to deploy the platform to [Railway](https://railway.com).
+You can run the platform anywhere that supports containerized images. For the lightest lift, this codebase comes with scripts to deploy the platform to [Railway](https://railway.com).
 
 > **Prerequisite:** [Railway CLI](https://docs.railway.com/cli#installing-the-cli) installed and `railway login` completed.
 
@@ -120,7 +120,7 @@ This provisions Postgres and the app service on the same private network. The sc
 
 ### 3. Production Auth
 
-Token-Based Authorization is on by default. Without a `JWT_VERIFICATION_KEY` or `JWT_JWKS_FILE`, the app refuses to serve traffic in production. The platform's job is to keep your data private, so the safe default is "refuse to start" without an authentication token.
+Token-Based Authorization is on by default. Without a `JWT_VERIFICATION_KEY`, the app refuses to serve traffic in production. The platform's job is to keep your data private, so the safe default is "refuse to start" without an authentication token.
 
 Token-Based Auth gives you three things:
 
@@ -143,13 +143,21 @@ MIIBIjANBgkq...
 -----END PUBLIC KEY-----"
 ```
 
-The value is quoted so every parser — docker compose `env_file` included — reads the multi-line PEM as one variable.
-
 > **Heads up.** Live AgentOS Connections are a paid feature. Use `PLATFORM30` to get 1 month off. We are working on a free trial so you don't have to pay to try.
 
-If you run non-interactively or skip the prompt, you can sync environment variables later with `./scripts/railway/env-sync.sh`.
+If you get something wrong, you can re-sync environment variables with `./scripts/railway/env-sync.sh`.
 
-### 4. Verify
+### 4. Register your production AgentOS to MCP clients
+
+Re-run the `uvx agno connect` command to connect Claude Code, Claude Desktop, Codex, and Cursor to your production platform.
+
+```sh
+uvx agno connect
+```
+
+For **claude.ai and ChatGPT (web).**, follow the remote MCP server registration process and authenticate using OAuth.
+
+### 5. Verify
 
 You can check the logs on the Railway dashboard, or by running the following command:
 
@@ -157,9 +165,9 @@ You can check the logs on the Railway dashboard, or by running the following com
 railway logs --service agent-os
 ```
 
-### 5. Redeploy after code changes
+### Redeploy after code changes
 
-For one-off updates from your machine, run the following command:
+To redeploy your AgentOS, run the following command:
 
 ```sh
 ./scripts/railway/redeploy.sh
@@ -173,7 +181,7 @@ Recommended: Auto-deploy on merge to `main` using:
 
 Push to `main` triggers a build and rolling deploy. `./scripts/railway/env-sync.sh` is still how you sync env changes.
 
-### 6. Sync environment variables
+### Sync environment variables
 
 To re-sync environment variables, run the following command:
 
@@ -181,13 +189,13 @@ To re-sync environment variables, run the following command:
 ./scripts/railway/env-sync.sh
 ```
 
-### 7. Tear down
+### Tear down
 
 ```sh
 ./scripts/railway/down.sh
 ```
 
-Deletes the Railway project — the agent-os service, the pgvector database, and its volume, **including all data**. It also drops the dead Railway domain from your env file so a future `up.sh` starts clean.
+Deletes the Railway project: the agent-os service, the pgvector database, and its volume, **including all data**. It also removes the AGENTOS_URL from your env file so a future `up.sh` starts clean.
 
 ### Opting out of JWT (not recommended)
 
@@ -195,7 +203,7 @@ Set `authorization=False` in [`app/main.py`](app/main.py) and redeploy. Use this
 
 ## Using the platform
 
-This platform is designed so that coding agents can drive the entire **create → improve → evaluate → maintain** lifecycle.
+This platform is designed so that coding agents can drive the entire **create → improve → evaluate → maintain** lifecycle for you.
 
 ### Create
 
