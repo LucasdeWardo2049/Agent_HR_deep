@@ -120,7 +120,7 @@ This provisions Postgres and the app service on the same private network. The sc
 
 ### 3. Production Auth
 
-Token-Based Authorization is on by default. Without a `JWT_VERIFICATION_KEY`, the app refuses to serve traffic in production. The platform's job is to keep your data private, so the safe default is "refuse to start" without an authentication token.
+Token-Based Authorization is on by default. Without a `JWT_VERIFICATION_KEY` or `JWT_JWKS_FILE`, the app refuses to serve traffic in production. The platform's job is to keep your data private, so the safe default is "refuse to start" without an authentication token.
 
 Token-Based Auth gives you three things:
 
@@ -149,13 +149,15 @@ If you get something wrong, you can re-sync environment variables with `./script
 
 ### 4. Register your production AgentOS to MCP clients
 
-Re-run the `uvx agno connect` command to connect Claude Code, Claude Desktop, Codex, and Cursor to your production platform.
+Re-run `uvx agno connect`, this time pointed at your deployed domain, to connect Claude Code, Claude Desktop, Codex, and Cursor to your production platform:
 
 ```sh
-uvx agno connect
+uvx agno connect --url https://<railway-domain>
 ```
 
-For **claude.ai and ChatGPT (web).**, follow the remote MCP server registration process and authenticate using OAuth.
+Production is JWT-gated, so this connection needs a token — `uvx agno connect` mints a service-account token (`agno_pat_…`) for it. The bare `uvx agno connect` (no `--url`) only re-registers `http://localhost:8000/mcp`.
+
+For **claude.ai and ChatGPT (web)**, follow the remote MCP server registration process for `https://<railway-domain>/mcp` and authenticate using OAuth.
 
 ### 5. Verify
 
