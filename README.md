@@ -77,7 +77,7 @@ Click **Chat** under **Platform Manager** and ask: "How healthy is the platform?
 
 ## Use your platform from Claude Code and chat apps
 
-AgentOS comes with an MCP server at `/mcp` (enabled by setting `enable_mcp_server=True` in [`app/main.py`](app/main.py)), so any MCP client can call your agents, teams, and workflows through tools like `run_agent`, `run_team`, and `run_workflow`.
+AgentOS comes with an MCP server at `/mcp` (enabled by setting `mcp_server=True` in [`app/main.py`](app/main.py)), so any MCP client can call your agents, teams, and workflows through tools like `run_agent`, `run_team`, and `run_workflow`.
 
 Register your AgentOS with the MCP clients on your machine:
 
@@ -155,7 +155,7 @@ Re-run `uvx agno connect`, this time pointed at your deployed domain, to connect
 uvx agno connect --url https://<railway-domain>
 ```
 
-Production is JWT-gated, so this connection needs a token — `uvx agno connect` mints a service-account token (`agno_pat_…`) for it. The bare `uvx agno connect` (no `--url`) only re-registers `http://localhost:8000/mcp`.
+Production is JWT-gated, so this connection needs a token — `uvx agno connect` mints a service-account token (`agno_pat_…`) for it. `--url` pins the target; a bare `uvx agno connect` resolves it from where you run it — in this repo it discovers the deployed URL that `up.sh` saved to `.env.production`, elsewhere it falls back to `http://localhost:8000/mcp`.
 
 For **claude.ai and ChatGPT (web)**, follow the remote MCP server registration process for `https://<railway-domain>/mcp` and authenticate using OAuth.
 

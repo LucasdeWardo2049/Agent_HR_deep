@@ -73,7 +73,7 @@ agent_os = AgentOS(
     scheduler=True,
     scheduler_base_url=scheduler_base_url,
     authorization=runtime_env != "dev",
-    enable_mcp_server=True,
+    mcp_server=True,
     lifespan=lifespan,
     db=get_postgres_db(),
     agents=[agent_builder, platform_manager, web_search],
