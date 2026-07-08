@@ -51,9 +51,7 @@ if SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET:
 
 # ---------------------------------------------------------------------------
 # MCP OAuth — enabled by setting the MCP_CONNECT_SECRET environment variable.
-# The built-in authorization server makes this AgentOS its own OAuth
-# 2.1 provider on the shared Postgres db, which is what lets AI apps
-# and coding agents connect to a secured /mcp.
+# Connect your favorite AI apps and coding agents to a secure /mcp using OAuth.
 # ---------------------------------------------------------------------------
 MCP_CONNECT_SECRET = getenv("MCP_CONNECT_SECRET", "")
 
