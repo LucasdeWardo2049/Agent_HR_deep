@@ -268,12 +268,8 @@ elif [[ -z "$AGENTOS_URL" ]]; then
 fi
 
 # MCP OAuth — claude.ai and ChatGPT (web) connect over OAuth only, and the
-# consent page is gated by MCP_CONNECT_SECRET, so the user must hold the
-# secret: generate one when the env file doesn't already carry it, persist it
-# there (never printed), and set it on the service. With the secret set, /mcp
-# serves its own OAuth 2.1 authorization server; PAT/JWT clients keep working.
-# Skipped when AGENTOS_URL couldn't be determined — the OAuth issuer derives
-# from it, and the app refuses to boot with a secret but no URL.
+# consent page is gated by MCP_CONNECT_SECRET, so the user must create the secret manually.
+# We generate a secret on behalf of the user when the env file doesn't have one
 if [[ -z "$MCP_CONNECT_SECRET" && ( -n "$AGENTOS_URL" || -n "$APP_URL" ) ]]; then
     MCP_CONNECT_SECRET="$(openssl rand -base64 32)"
     export MCP_CONNECT_SECRET

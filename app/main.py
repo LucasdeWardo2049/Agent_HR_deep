@@ -23,8 +23,7 @@ from workflows.run_evals import run_evals
 # Environment
 # ---------------------------------------------------------------------------
 runtime_env = getenv("RUNTIME_ENV", "prd")
-# The platform's public origin: the scheduler reaches AgentOS over it, and it
-# is the OAuth issuer when MCP OAuth is enabled below.
+# Used by the scheduler and the OAuth server when MCP OAuth is enabled.
 agentos_url = getenv("AGENTOS_URL", "http://127.0.0.1:8000")
 
 # ---------------------------------------------------------------------------
