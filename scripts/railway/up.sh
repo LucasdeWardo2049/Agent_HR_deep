@@ -347,5 +347,9 @@ echo -e "${BOLD}Done.${NC} The app is building — give it a few minutes."
 echo -e "${DIM}Logs:           railway logs --service agent-os${NC}"
 echo -e "${DIM}Sync env vars:  ./scripts/railway/env-sync.sh  (defaults to .env.production)${NC}"
 [[ -n "$APP_URL" ]] && echo -e "${DIM}Connect apps:   uvx agno connect --url ${APP_URL}  (Claude Desktop + coding agents; mints a service-account token — see README)${NC}"
-[[ -n "$APP_URL" && -n "$MCP_CONNECT_SECRET" ]] && echo -e "${DIM}Chat apps:      add ${APP_URL}/mcp as a custom connector in claude.ai / ChatGPT; approve with MCP_CONNECT_SECRET from ${ENV_FILE:-.env.production}${NC}"
+if [[ -n "$APP_URL" && -n "$MCP_CONNECT_SECRET" ]]; then
+    echo -e "${DIM}Chat apps:      add ${APP_URL}/mcp as a custom connector in claude.ai / ChatGPT.${NC}"
+    echo -e "${DIM}                When it asks you to sign in, approve the consent page with your MCP_CONNECT_SECRET:${NC}"
+    echo -e "${DIM}                grep MCP_CONNECT_SECRET ${ENV_FILE:-.env.production}${NC}"
+fi
 echo ""
