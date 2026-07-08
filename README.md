@@ -36,7 +36,7 @@ Help me set up an AgentOS on this machine. Work step by step and verify each ste
 6. Ask me which frontends I want connected, then set up the ones I pick:
    - Coding agents (including you): run `uvx agno connect` — it registers http://localhost:8000/mcp in Claude Code, Claude Desktop, Codex, and Cursor, and verifies with a real handshake. Use the default user scope, not --project (that would write a token into the repo).
    - The AgentOS web UI: walk me through os.agno.com → Connect OS → http://localhost:8000, named "Local AgentOS".
-   - Claude and ChatGPT apps (web or desktop): their sessions run in the cloud and can't reach localhost, so work with me on deploying to production first using ./scripts/railway/up.sh (needs the Railway CLI, logged in; the script pauses while I mint a JWT key at os.agno.com). Then help me set MCP_CONNECT_SECRET in .env.production and sync it — that turns on OAuth for /mcp — and I add https://<railway-domain>/mcp as a custom connector in the chat app's connector settings, approving the consent page with the secret.
+   - Claude and ChatGPT apps (web or desktop): their sessions run in the cloud and can't reach localhost, so work with me on deploying to production first using ./scripts/railway/up.sh (needs the Railway CLI, logged in; the script pauses while I mint a JWT key at os.agno.com, and generates MCP_CONNECT_SECRET — the OAuth consent secret — into .env.production). Then I add https://<railway-domain>/mcp as a custom connector in the chat app's connector settings and approve the consent page with that secret.
 7. Finish with a short summary of what's running and where, plus a few first prompts to try — start with asking Agent Builder to "Build an agent that tracks AI news and writes a daily brief".
 ```
 
@@ -157,14 +157,14 @@ uvx agno connect --url https://<railway-domain>
 
 Production is JWT-gated, so this connection needs a token — `uvx agno connect` mints a service-account token (`agno_pat_…`) for it. `--url` pins the target; a bare `uvx agno connect` resolves it from where you run it — in this repo it discovers the deployed URL that `up.sh` saved to `.env.production`, elsewhere it falls back to `http://localhost:8000/mcp`.
 
-For **claude.ai and ChatGPT (web)**, set a connect secret in `.env.production` and sync it (the platform then serves its own OAuth authorization server on `/mcp`):
+For **claude.ai and ChatGPT (web)**, the platform serves its own OAuth authorization server on `/mcp` — `up.sh` generated the login secret for it (`MCP_CONNECT_SECRET` in `.env.production`) during deploy. Add `https://<railway-domain>/mcp` as a custom connector in the chat app's connector settings and approve the consent page with that secret. PAT and JWT clients keep working alongside OAuth.
+
+For a deploy that predates the secret, add one and sync it:
 
 ```sh
 echo "MCP_CONNECT_SECRET=$(openssl rand -base64 32)" >> .env.production
 ./scripts/railway/env-sync.sh
 ```
-
-Then add `https://<railway-domain>/mcp` as a custom connector in the chat app's connector settings and approve the consent page with the connect secret. PAT and JWT clients keep working alongside OAuth.
 
 ### 5. Verify
 

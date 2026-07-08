@@ -14,9 +14,10 @@
 #      - Logged in via `railway login`
 #      - OPENAI_API_KEY set in environment (or .env / .env.production)
 #
-#    Creates the public domain before deploy, writes it to AGENTOS_URL, and
-#    pauses for JWT_VERIFICATION_KEY/JWT_JWKS_FILE when production auth would
-#    otherwise prevent the first deploy from serving.
+#    Creates the public domain before deploy, writes it to AGENTOS_URL,
+#    generates MCP_CONNECT_SECRET (chat-app OAuth) into the env file when
+#    missing, and pauses for JWT_VERIFICATION_KEY/JWT_JWKS_FILE when
+#    production auth would otherwise prevent the first deploy from serving.
 #
 ############################################################################
 
@@ -266,6 +267,24 @@ elif [[ -z "$AGENTOS_URL" ]]; then
     echo -e "${DIM}  (or add it to ${ENV_FILE:-.env.production} and run ./scripts/railway/env-sync.sh)${NC}"
 fi
 
+# MCP OAuth — claude.ai and ChatGPT (web) connect over OAuth only, and the
+# consent page is gated by MCP_CONNECT_SECRET, so the user must hold the
+# secret: generate one when the env file doesn't already carry it, persist it
+# there (never printed), and set it on the service. With the secret set, /mcp
+# serves its own OAuth 2.1 authorization server; PAT/JWT clients keep working.
+# Skipped when AGENTOS_URL couldn't be determined — the OAuth issuer derives
+# from it, and the app refuses to boot with a secret but no URL.
+if [[ -z "$MCP_CONNECT_SECRET" && ( -n "$AGENTOS_URL" || -n "$APP_URL" ) ]]; then
+    MCP_CONNECT_SECRET="$(openssl rand -base64 32)"
+    export MCP_CONNECT_SECRET
+    ENV_FILE="${ENV_FILE:-.env.production}"
+    [[ -f "$ENV_FILE" ]] || : > "$ENV_FILE"
+    persist_env_var MCP_CONNECT_SECRET "$MCP_CONNECT_SECRET" "$ENV_FILE"
+    echo -e "${DIM}Generated MCP_CONNECT_SECRET -> ${ENV_FILE} + Railway (value not shown; it approves chat-app OAuth connections)${NC}"
+fi
+[[ -n "$MCP_CONNECT_SECRET" ]] && \
+    railway variables --set "MCP_CONNECT_SECRET=${MCP_CONNECT_SECRET}" --service agent-os > /dev/null 2>&1
+
 AUTH_REQUIRES_JWT=1
 [[ "${RUNTIME_ENV:-prd}" == "dev" ]] && AUTH_REQUIRES_JWT=""
 
@@ -328,4 +347,5 @@ echo -e "${BOLD}Done.${NC} The app is building — give it a few minutes."
 echo -e "${DIM}Logs:           railway logs --service agent-os${NC}"
 echo -e "${DIM}Sync env vars:  ./scripts/railway/env-sync.sh  (defaults to .env.production)${NC}"
 [[ -n "$APP_URL" ]] && echo -e "${DIM}Connect apps:   uvx agno connect --url ${APP_URL}  (Claude Desktop + coding agents; mints a service-account token — see README)${NC}"
+[[ -n "$APP_URL" && -n "$MCP_CONNECT_SECRET" ]] && echo -e "${DIM}Chat apps:      add ${APP_URL}/mcp as a custom connector in claude.ai / ChatGPT; approve with MCP_CONNECT_SECRET from ${ENV_FILE:-.env.production}${NC}"
 echo ""
