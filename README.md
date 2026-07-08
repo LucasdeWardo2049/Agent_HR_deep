@@ -36,7 +36,7 @@ Help me set up an AgentOS on this machine. Work step by step and verify each ste
 6. Ask me which frontends I want connected, then set up the ones I pick:
    - Coding agents (including you): run `uvx agno connect` — it registers http://localhost:8000/mcp in Claude Code, Claude Desktop, Codex, and Cursor, and verifies with a real handshake. Use the default user scope, not --project (that would write a token into the repo).
    - The AgentOS web UI: walk me through os.agno.com → Connect OS → http://localhost:8000, named "Local AgentOS".
-   - Claude and ChatGPT apps (web or desktop): their sessions run in the cloud and can't reach localhost, so work with me on deploying to production first using ./scripts/railway/up.sh (needs the Railway CLI, logged in; the script pauses while I mint a JWT key at os.agno.com). Then I add https://<railway-domain>/mcp as a custom connector in the chat app's connector settings.
+   - Claude and ChatGPT apps (web or desktop): their sessions run in the cloud and can't reach localhost, so work with me on deploying to production first using ./scripts/railway/up.sh (needs the Railway CLI, logged in; the script pauses while I mint a JWT key at os.agno.com). Then help me set MCP_CONNECT_SECRET in .env.production and sync it — that turns on OAuth for /mcp — and I add https://<railway-domain>/mcp as a custom connector in the chat app's connector settings, approving the consent page with the secret.
 7. Finish with a short summary of what's running and where, plus a few first prompts to try — start with asking Agent Builder to "Build an agent that tracks AI news and writes a daily brief".
 ```
 
@@ -91,7 +91,7 @@ It auto-detects Claude Code, Claude Desktop, Codex, and Cursor and registers `ht
 can you access my agentos mcp?
 ```
 
-**claude.ai and ChatGPT (web).** Hosted AI apps reach your platform over the internet and sign in with **OAuth**. Deploy to production (below) and add `https://<domain>/mcp` as a remote connector.
+**claude.ai and ChatGPT (web).** Hosted AI apps reach your platform over the internet and sign in with **OAuth**: set `MCP_CONNECT_SECRET` and the platform becomes its own OAuth authorization server — no external accounts. Deploy to production (below), add `https://<domain>/mcp` as a remote connector, and approve the consent page with your connect secret.
 
 ## Run in production
 
@@ -157,7 +157,14 @@ uvx agno connect --url https://<railway-domain>
 
 Production is JWT-gated, so this connection needs a token — `uvx agno connect` mints a service-account token (`agno_pat_…`) for it. `--url` pins the target; a bare `uvx agno connect` resolves it from where you run it — in this repo it discovers the deployed URL that `up.sh` saved to `.env.production`, elsewhere it falls back to `http://localhost:8000/mcp`.
 
-For **claude.ai and ChatGPT (web)**, follow the remote MCP server registration process for `https://<railway-domain>/mcp` and authenticate using OAuth.
+For **claude.ai and ChatGPT (web)**, set a connect secret in `.env.production` and sync it (the platform then serves its own OAuth authorization server on `/mcp`):
+
+```sh
+echo "MCP_CONNECT_SECRET=$(openssl rand -base64 32)" >> .env.production
+./scripts/railway/env-sync.sh
+```
+
+Then add `https://<railway-domain>/mcp` as a custom connector in the chat app's connector settings and approve the consent page with the connect secret. PAT and JWT clients keep working alongside OAuth.
 
 ### 5. Verify
 

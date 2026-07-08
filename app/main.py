@@ -48,6 +48,22 @@ if SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET:
 
 
 # ---------------------------------------------------------------------------
+# MCP OAuth — lights up when MCP_CONNECT_SECRET is set (mirrors the Slack
+# pattern). The built-in authorization server makes this AgentOS its own OAuth
+# 2.1 provider on the shared Postgres db, which is what lets claude.ai and
+# ChatGPT (web) connect to a secured /mcp — their connector UIs are OAuth-only.
+# Never open: connecting requires MCP_CONNECT_SECRET on a consent page.
+# Existing bearer clients (agno_pat_ service accounts, JWTs) keep working.
+# Also needs AGENTOS_URL (the public origin) — compose and up.sh both set it.
+# ---------------------------------------------------------------------------
+mcp_auth = None
+if getenv("MCP_CONNECT_SECRET"):
+    from agno.os import AgentOSBuiltinAuth
+
+    mcp_auth = AgentOSBuiltinAuth.from_env()
+
+
+# ---------------------------------------------------------------------------
 # Lifespan — app-level startup / teardown.
 #
 # AgentOS handles the MCP lifecycle (connect on startup, close on shutdown)
@@ -74,6 +90,7 @@ agent_os = AgentOS(
     scheduler_base_url=scheduler_base_url,
     authorization=runtime_env != "dev",
     mcp_server=True,
+    mcp_auth=mcp_auth,
     lifespan=lifespan,
     db=get_postgres_db(),
     agents=[agent_builder, platform_manager, web_search],
