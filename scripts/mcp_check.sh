@@ -21,12 +21,23 @@
 
 set -e
 
+# Colors
+ORANGE='\033[38;5;208m'
+RED='\033[31m'
+DIM='\033[2m'
+BOLD='\033[1m'
+NC='\033[0m'
+
 DEFAULT_QUESTION="Without using any tools, introduce yourself and this platform in two short sentences."
 QUESTION="${1:-$DEFAULT_QUESTION}"
 
-echo "MCP check — http://localhost:8000/mcp (client runs inside agentos-api)"
+echo ""
+echo -e "${ORANGE}▸${NC} ${BOLD}MCP Check${NC}"
+echo ""
+echo -e "${DIM}> http://localhost:8000/mcp  (client runs inside agentos-api)${NC}"
+echo ""
 
-docker compose exec -T agentos-api python -u - "$QUESTION" <<'PY'
+if docker compose exec -T agentos-api python -u - "$QUESTION" <<'PY'
 import asyncio
 import sys
 import time
@@ -34,14 +45,23 @@ import time
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
+ORANGE = "\033[38;5;208m"
+DIM = "\033[2m"
+BOLD = "\033[1m"
+NC = "\033[0m"
 
-async def run_check(headers: dict | None) -> None:
+
+def step(text: str) -> None:
+    print(f"{ORANGE}✓{NC} {text}", flush=True)
+
+
+async def run_check(headers: dict | None, auth_note: str) -> None:
     async with streamablehttp_client("http://localhost:8000/mcp", headers=headers, timeout=180) as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
+            step(f"Handshake — {auth_note}")
             tools = await session.list_tools()
-            print(f"MCP OK — {len(tools.tools)} tools", flush=True)
-            print("  asking platform-manager (run_agent)...", flush=True)
+            step(f"MCP OK — {len(tools.tools)} tools")
             start = time.perf_counter()
             result = await session.call_tool(
                 "run_agent",
@@ -49,9 +69,12 @@ async def run_check(headers: dict | None) -> None:
                 read_timeout_seconds=None,
             )
             elapsed = time.perf_counter() - start
+            step(f"run_agent — platform-manager answered in {elapsed:.1f}s")
             # run_agent returns a trimmed ToolResult: content[0].text is the plain
             # answer, and structuredContent carries {run_id, session_id, status}.
-            print(f"AGENT RESPONSE ({elapsed:.1f}s):\n", flush=True)
+            print(flush=True)
+            print(f"{DIM}Agent response:{NC}", flush=True)
+            print(flush=True)
             print(result.content[0].text, flush=True)
 
 
@@ -87,21 +110,32 @@ async def run_check_with_probe_pat() -> None:
     )
     db.create_service_account(account.to_dict())
     try:
-        await run_check({"Authorization": f"Bearer {plaintext}"})
+        await run_check(
+            {"Authorization": f"Bearer {plaintext}"},
+            "auth-gated; connected with a short-lived probe token",
+        )
     finally:
         db.delete_service_account(account.id)
 
 
 async def main() -> None:
-    print("  connecting...", flush=True)
     try:
-        await run_check(None)
+        await run_check(None, "open (dev)")
     except BaseException as exc:  # ExceptionGroup from the transport on 401
         if not is_unauthorized(exc):
             raise
-        print("  /mcp is auth-gated — retrying with a short-lived probe token...", flush=True)
         await run_check_with_probe_pat()
 
 
 asyncio.run(main())
 PY
+then
+    echo ""
+    echo -e "${BOLD}Done.${NC}"
+    echo ""
+else
+    echo ""
+    echo -e "${RED}${BOLD}Failed.${NC} ${DIM}Check the container: docker compose logs agentos-api${NC}"
+    echo ""
+    exit 1
+fi
