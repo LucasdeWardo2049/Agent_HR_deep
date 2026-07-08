@@ -280,7 +280,7 @@ if [[ -z "$MCP_CONNECT_SECRET" && ( -n "$AGENTOS_URL" || -n "$APP_URL" ) ]]; the
     ENV_FILE="${ENV_FILE:-.env.production}"
     [[ -f "$ENV_FILE" ]] || : > "$ENV_FILE"
     persist_env_var MCP_CONNECT_SECRET "$MCP_CONNECT_SECRET" "$ENV_FILE"
-    echo -e "${DIM}Generated MCP_CONNECT_SECRET -> ${ENV_FILE} + Railway (value not shown; it approves chat-app OAuth connections)${NC}"
+    echo -e "${DIM}Generated MCP_CONNECT_SECRET -> ${ENV_FILE} + Railway (shown in the summary below)${NC}"
 fi
 [[ -n "$MCP_CONNECT_SECRET" ]] && \
     railway variables --set "MCP_CONNECT_SECRET=${MCP_CONNECT_SECRET}" --service agent-os > /dev/null 2>&1
@@ -349,7 +349,7 @@ echo -e "${DIM}Sync env vars:  ./scripts/railway/env-sync.sh  (defaults to .env.
 [[ -n "$APP_URL" ]] && echo -e "${DIM}Connect apps:   uvx agno connect --url ${APP_URL}  (Claude Desktop + coding agents; mints a service-account token — see README)${NC}"
 if [[ -n "$APP_URL" && -n "$MCP_CONNECT_SECRET" ]]; then
     echo -e "${DIM}Chat apps:      add ${APP_URL}/mcp as a custom connector in claude.ai / ChatGPT.${NC}"
-    echo -e "${DIM}                When it asks you to sign in, approve the consent page with your MCP_CONNECT_SECRET:${NC}"
-    echo -e "${DIM}                grep MCP_CONNECT_SECRET ${ENV_FILE:-.env.production}${NC}"
+    echo -e "${DIM}                When it asks you to sign in, approve the consent page with this secret:${NC}"
+    echo -e "${BOLD}                ${MCP_CONNECT_SECRET}${NC}"
 fi
 echo ""

@@ -1,6 +1,6 @@
 # AgentOS: the agent backend for every frontend
 
-AgentOS is a secure, scalable backend for building agents once and making them available everywhere.
+AgentOS is a secure, scalable backend for running agents. Build agents once and make them available everywhere:
 
 1. **AI apps.** Claude and ChatGPT can use your agents through the MCP server at `/mcp`.
 2. **Chat interfaces.** Chat with your agents from Slack, WhatsApp, Telegram, and Discord.
@@ -157,14 +157,7 @@ uvx agno connect --url https://<railway-domain>
 
 Production is JWT-gated, so this connection needs a token — `uvx agno connect` mints a service-account token (`agno_pat_…`) for it. `--url` pins the target; a bare `uvx agno connect` resolves it from where you run it — in this repo it discovers the deployed URL that `up.sh` saved to `.env.production`, elsewhere it falls back to `http://localhost:8000/mcp`.
 
-For **claude.ai and ChatGPT (web)**, the platform serves its own OAuth authorization server on `/mcp` — `up.sh` generated the login secret for it (`MCP_CONNECT_SECRET` in `.env.production`) during deploy. Add `https://<railway-domain>/mcp` as a custom connector in the chat app's connector settings and approve the consent page with that secret. PAT and JWT clients keep working alongside OAuth.
-
-For a deploy that predates the secret, add one and sync it:
-
-```sh
-echo "MCP_CONNECT_SECRET=$(openssl rand -base64 32)" >> .env.production
-./scripts/railway/env-sync.sh
-```
+For **claude.ai and ChatGPT (web)**, the platform serves its own OAuth authorization server on `/mcp` — `up.sh` generated the login secret for it (`MCP_CONNECT_SECRET` in `.env.production`) during deploy. Add `https://<railway-domain>/mcp` as a custom connector in the chat app's connector settings and approve the consent page with that secret.
 
 ### 5. Verify
 
