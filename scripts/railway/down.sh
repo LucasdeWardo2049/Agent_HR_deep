@@ -18,6 +18,7 @@
 set -e
 
 # Colors
+ORANGE='\033[38;5;208m'
 DIM='\033[2m'
 BOLD='\033[1m'
 RED='\033[31m'
@@ -56,7 +57,9 @@ if [[ -z "$PROJECT_ID" || -z "$PROJECT_NAME" ]]; then
 fi
 
 echo ""
-echo -e "${BOLD}This deletes the Railway project:${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Railway Teardown${NC}"
+echo ""
+echo -e "This deletes the Railway project:"
 echo -e "  - project   ${PROJECT_NAME}  ${DIM}(${PROJECT_ID})${NC}"
 echo -e "  - services  agent-os + pgvector  ${RED}(all data deleted)${NC}"
 echo ""
@@ -71,7 +74,7 @@ if [[ "$1" != "--yes" ]]; then
 fi
 
 echo ""
-echo -e "${BOLD}Deleting ${PROJECT_NAME}...${NC}"
+echo -e "${DIM}> railway delete --project ${PROJECT_ID} --yes${NC}"
 railway delete --project "$PROJECT_ID" --yes \
     || echo -e "${DIM}Delete returned non-zero — verifying below${NC}"
 
@@ -81,7 +84,7 @@ railway delete --project "$PROJECT_ID" --yes \
 # is still alive and billing.
 if ! LIST_JSON="$(railway list --json 2>&1)"; then
     echo ""
-    echo -e "${BOLD}Couldn't verify the project is gone${NC} — railway list failed with:"
+    echo -e "${RED}${BOLD}Couldn't verify the project is gone${NC} — railway list failed with:"
     echo -e "${DIM}${LIST_JSON}${NC}"
     echo "The directory stays linked so you can retry. Check: railway list"
     exit 1
@@ -89,7 +92,7 @@ fi
 
 if grep -qF "$PROJECT_ID" <<< "$LIST_JSON"; then
     echo ""
-    echo -e "${BOLD}Teardown incomplete${NC} — the project is still listed. Retry, or if your"
+    echo -e "${RED}${BOLD}Teardown incomplete${NC} — the project is still listed. Retry, or if your"
     echo -e "account has 2FA enabled, delete needs a code in non-interactive mode:"
     echo -e "${DIM}  railway delete --project ${PROJECT_ID} --yes --2fa-code <code>${NC}"
     exit 1

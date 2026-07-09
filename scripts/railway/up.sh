@@ -181,12 +181,12 @@ if [[ -z "$OPENAI_API_KEY" ]]; then
     exit 1
 fi
 
-echo -e "${BOLD}Initializing project...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Initializing project${NC}"
 echo ""
 railway init -n "agentos-railway"
 
 echo ""
-echo -e "${BOLD}Deploying PgVector database...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Deploying PgVector database${NC}"
 echo ""
 railway add -s pgvector -i agnohq/pgvector:18 \
     -v "POSTGRES_USER=${DB_USER:-ai}" \
@@ -194,7 +194,7 @@ railway add -s pgvector -i agnohq/pgvector:18 \
     -v "POSTGRES_DB=${DB_DATABASE:-ai}"
 
 echo ""
-echo -e "${BOLD}Adding database volume...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Adding database volume${NC}"
 railway service link pgvector
 railway volume add -m /var/lib/postgresql 2>/dev/null || echo -e "${DIM}Volume already exists or skipped${NC}"
 
@@ -203,7 +203,7 @@ echo -e "${DIM}Waiting 15s for database...${NC}"
 sleep 15
 
 echo ""
-echo -e "${BOLD}Creating application service...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Creating application service${NC}"
 echo ""
 # Forward relevant env vars the first deploy might need.
 # Use ./scripts/railway/env-sync.sh to sync the rest from .env later.
@@ -240,7 +240,7 @@ railway variables --set "OPENAI_API_KEY=${OPENAI_API_KEY}" --service agent-os > 
 # *before* it serves, and so os.agno.com can mint JWT_VERIFICATION_KEY against
 # the real domain.
 echo ""
-echo -e "${BOLD}Creating domain...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Creating domain${NC}"
 echo ""
 DOMAIN_OUTPUT="$(railway domain --service agent-os 2>&1 || true)"
 echo "$DOMAIN_OUTPUT"
@@ -289,7 +289,7 @@ AUTH_REQUIRES_JWT=1
 # mint the key, save it, and have this first deploy come up serving.
 if [[ -n "$AUTH_REQUIRES_JWT" && -z "$JWT_VERIFICATION_KEY" && -z "$JWT_JWKS_FILE" && -t 0 ]]; then
     echo ""
-    echo -e "${BOLD}JWT_VERIFICATION_KEY not set${NC} — AgentOS won't serve production traffic without auth."
+    echo -e "${ORANGE}▸${NC} ${BOLD}JWT_VERIFICATION_KEY not set${NC} — AgentOS won't serve production traffic without auth."
     echo -e "  1. Open ${BOLD}https://os.agno.com${NC} -> Connect OS -> Live -> enter ${APP_URL:-your Railway domain}"
     echo -e "  2. Name it ${BOLD}Live AgentOS${NC}"
     echo -e "  3. Note: Live AgentOS Connections are a paid feature; use ${BOLD}PLATFORM30${NC} to get 1 month off"
@@ -333,7 +333,7 @@ elif [[ -n "$AUTH_REQUIRES_JWT" ]]; then
 fi
 
 echo ""
-echo -e "${BOLD}Deploying application...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Deploying application${NC}"
 echo ""
 railway up --service agent-os -d
 

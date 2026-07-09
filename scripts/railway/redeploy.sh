@@ -14,6 +14,7 @@
 set -e
 
 # Colors
+ORANGE='\033[38;5;208m'
 DIM='\033[2m'
 BOLD='\033[1m'
 NC='\033[0m'
@@ -30,7 +31,9 @@ if ! railway status &> /dev/null; then
 fi
 
 echo ""
-echo -e "${BOLD}Redeploying agent-os...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Redeploying agent-os${NC}"
+echo ""
+echo -e "${DIM}> railway up --service agent-os -d${NC}"
 echo ""
 railway up --service agent-os -d
 
