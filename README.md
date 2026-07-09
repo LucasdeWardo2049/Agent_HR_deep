@@ -157,7 +157,7 @@ uvx agno connect --url https://<railway-domain>
 
 Production is JWT-gated, so this connection needs a token — `uvx agno connect` mints a service-account token (`agno_pat_…`) for it. `--url` pins the target; a bare `uvx agno connect` resolves it from where you run it — in this repo it discovers the deployed URL that `up.sh` saved to `.env.production`, elsewhere it falls back to `http://localhost:8000/mcp`.
 
-For **claude.ai and ChatGPT (web)**, the platform serves its own OAuth authorization server on `/mcp` — `up.sh` generated the login secret for it (`MCP_CONNECT_SECRET` in `.env.production`) during deploy. Add `https://<railway-domain>/mcp` as a custom connector in the chat app's connector settings and approve the consent page with that secret.
+For **claude.ai and ChatGPT (web)**, the platform serves its own OAuth authorization server on `/mcp` — `up.sh` generated the login secret for it (`MCP_CONNECT_SECRET` in `.env.production`) during deploy. Add `https://<railway-domain>/mcp` as a custom connector in the chat app's connector settings. **Leave the form's optional OAuth fields (client ID / client secret) empty** — the platform registers the app automatically. The connect secret is typed exactly once, on the consent page that opens after you click **Connect**.
 
 ### 5. Verify
 
