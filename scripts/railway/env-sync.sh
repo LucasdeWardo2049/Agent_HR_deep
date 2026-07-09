@@ -17,6 +17,7 @@
 set -e
 
 # Colors
+ORANGE='\033[38;5;208m'
 DIM='\033[2m'
 BOLD='\033[1m'
 NC='\033[0m'
@@ -40,7 +41,9 @@ if ! railway status &> /dev/null; then
 fi
 
 echo ""
-echo -e "${BOLD}Syncing env vars from ${ENV_FILE} to Railway...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Syncing env vars${NC}"
+echo ""
+echo -e "${DIM}> ${ENV_FILE} -> Railway service agent-os${NC}"
 echo ""
 
 # Parse the env file, treating PEM blocks (and other multiline values)

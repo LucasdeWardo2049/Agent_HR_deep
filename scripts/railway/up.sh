@@ -14,9 +14,10 @@
 #      - Logged in via `railway login`
 #      - OPENAI_API_KEY set in environment (or .env / .env.production)
 #
-#    Creates the public domain before deploy, writes it to AGENTOS_URL, and
-#    pauses for JWT_VERIFICATION_KEY/JWT_JWKS_FILE when production auth would
-#    otherwise prevent the first deploy from serving.
+#    Creates the public domain before deploy, writes it to AGENTOS_URL,
+#    generates MCP_CONNECT_SECRET (chat-app OAuth) into the env file when
+#    missing, and pauses for JWT_VERIFICATION_KEY/JWT_JWKS_FILE when
+#    production auth would otherwise prevent the first deploy from serving.
 #
 ############################################################################
 
@@ -180,12 +181,12 @@ if [[ -z "$OPENAI_API_KEY" ]]; then
     exit 1
 fi
 
-echo -e "${BOLD}Initializing project...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Initializing project${NC}"
 echo ""
 railway init -n "agentos-railway"
 
 echo ""
-echo -e "${BOLD}Deploying PgVector database...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Deploying PgVector database${NC}"
 echo ""
 railway add -s pgvector -i agnohq/pgvector:18 \
     -v "POSTGRES_USER=${DB_USER:-ai}" \
@@ -193,7 +194,7 @@ railway add -s pgvector -i agnohq/pgvector:18 \
     -v "POSTGRES_DB=${DB_DATABASE:-ai}"
 
 echo ""
-echo -e "${BOLD}Adding database volume...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Adding database volume${NC}"
 railway service link pgvector
 railway volume add -m /var/lib/postgresql 2>/dev/null || echo -e "${DIM}Volume already exists or skipped${NC}"
 
@@ -202,7 +203,7 @@ echo -e "${DIM}Waiting 15s for database...${NC}"
 sleep 15
 
 echo ""
-echo -e "${BOLD}Creating application service...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Creating application service${NC}"
 echo ""
 # Forward relevant env vars the first deploy might need.
 # Use ./scripts/railway/env-sync.sh to sync the rest from .env later.
@@ -239,7 +240,7 @@ railway variables --set "OPENAI_API_KEY=${OPENAI_API_KEY}" --service agent-os > 
 # *before* it serves, and so os.agno.com can mint JWT_VERIFICATION_KEY against
 # the real domain.
 echo ""
-echo -e "${BOLD}Creating domain...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Creating domain${NC}"
 echo ""
 DOMAIN_OUTPUT="$(railway domain --service agent-os 2>&1 || true)"
 echo "$DOMAIN_OUTPUT"
@@ -266,6 +267,20 @@ elif [[ -z "$AGENTOS_URL" ]]; then
     echo -e "${DIM}  (or add it to ${ENV_FILE:-.env.production} and run ./scripts/railway/env-sync.sh)${NC}"
 fi
 
+# MCP OAuth — claude.ai and ChatGPT (web) connect over OAuth only, and the
+# consent page is gated by MCP_CONNECT_SECRET, so the user must create the secret manually.
+# We generate a secret on behalf of the user when the env file doesn't have one
+if [[ -z "$MCP_CONNECT_SECRET" && ( -n "$AGENTOS_URL" || -n "$APP_URL" ) ]]; then
+    MCP_CONNECT_SECRET="$(openssl rand -base64 32)"
+    export MCP_CONNECT_SECRET
+    ENV_FILE="${ENV_FILE:-.env.production}"
+    [[ -f "$ENV_FILE" ]] || : > "$ENV_FILE"
+    persist_env_var MCP_CONNECT_SECRET "$MCP_CONNECT_SECRET" "$ENV_FILE"
+    echo -e "${DIM}Generated MCP_CONNECT_SECRET -> ${ENV_FILE} + Railway (shown in the summary below)${NC}"
+fi
+[[ -n "$MCP_CONNECT_SECRET" ]] && \
+    railway variables --set "MCP_CONNECT_SECRET=${MCP_CONNECT_SECRET}" --service agent-os > /dev/null 2>&1
+
 AUTH_REQUIRES_JWT=1
 [[ "${RUNTIME_ENV:-prd}" == "dev" ]] && AUTH_REQUIRES_JWT=""
 
@@ -274,7 +289,7 @@ AUTH_REQUIRES_JWT=1
 # mint the key, save it, and have this first deploy come up serving.
 if [[ -n "$AUTH_REQUIRES_JWT" && -z "$JWT_VERIFICATION_KEY" && -z "$JWT_JWKS_FILE" && -t 0 ]]; then
     echo ""
-    echo -e "${BOLD}JWT_VERIFICATION_KEY not set${NC} — AgentOS won't serve production traffic without auth."
+    echo -e "${ORANGE}▸${NC} ${BOLD}JWT_VERIFICATION_KEY not set${NC} — AgentOS won't serve production traffic without auth."
     echo -e "  1. Open ${BOLD}https://os.agno.com${NC} -> Connect OS -> Live -> enter ${APP_URL:-your Railway domain}"
     echo -e "  2. Name it ${BOLD}Live AgentOS${NC}"
     echo -e "  3. Note: Live AgentOS Connections are a paid feature; use ${BOLD}PLATFORM30${NC} to get 1 month off"
@@ -318,7 +333,7 @@ elif [[ -n "$AUTH_REQUIRES_JWT" ]]; then
 fi
 
 echo ""
-echo -e "${BOLD}Deploying application...${NC}"
+echo -e "${ORANGE}▸${NC} ${BOLD}Deploying application${NC}"
 echo ""
 railway up --service agent-os -d
 
@@ -326,6 +341,12 @@ echo ""
 echo -e "${BOLD}Done.${NC} The app is building — give it a few minutes."
 [[ -n "$APP_URL" ]] && echo -e "${DIM}URL:            ${APP_URL}${NC}"
 echo -e "${DIM}Logs:           railway logs --service agent-os${NC}"
-echo -e "${DIM}Sync env vars:  ./scripts/railway/env-sync.sh  (defaults to .env.production)${NC}"
-[[ -n "$APP_URL" ]] && echo -e "${DIM}Connect apps:   uvx agno connect --url ${APP_URL}  (Claude Desktop + coding agents; mints a service-account token — see README)${NC}"
+echo -e "${DIM}Sync env vars:  ./scripts/railway/env-sync.sh${NC}"
+[[ -n "$APP_URL" ]] && echo -e "${DIM}Connect apps:   uvx agno connect --url ${APP_URL}${NC}"
+if [[ -n "$APP_URL" && -n "$MCP_CONNECT_SECRET" ]]; then
+    echo -e "${DIM}Chat apps:      add ${APP_URL}/mcp as a custom connector in claude.ai / ChatGPT${NC}"
+    echo -e "${DIM}                (leave the optional OAuth client ID/secret fields empty).${NC}"
+    echo -e "${DIM}                Then click Connect and approve the consent page with this secret:${NC}"
+    echo -e "${BOLD}                ${MCP_CONNECT_SECRET}${NC}"
+fi
 echo ""
