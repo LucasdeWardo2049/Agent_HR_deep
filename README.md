@@ -213,7 +213,7 @@ Open your coding agent of choice (Claude Code, Codex, Cursor) and run:
 /create-new-agent
 ```
 
-It asks a few questions, generates the agent file in `agents/`, registers it in `app/main.py`, adds quick prompts to `app/config.yaml`, restarts the container, and smoke-tests it live.
+It asks a few questions, generates the agent file in `agents/`, registers it in `app/main.py`, adds its description and quick prompts to `app/config.yaml`, restarts the container, and smoke-tests it live.
 
 ### Improve
 
