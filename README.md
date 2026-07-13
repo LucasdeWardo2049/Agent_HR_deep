@@ -2,7 +2,7 @@
 
 AgentOS is a secure, scalable platform for running agents. Build agents once and make them available everywhere:
 
-1. **AgentOS UI.** Chat with agents, build new ones with Agent Builder, and inspect sessions, traces, memory, and evals from the control plane at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway).
+1. **AgentOS UI.** Chat with agents, build new ones with Agent Builder, and inspect sessions, traces, memory, and evals from the AgentOS UI at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway).
 2. **Coding agents.** Claude Code and Codex build, test, and improve the platform using the skills in [`.agents/skills/`](.agents/skills/).
 3. **AI apps.** Claude and ChatGPT can use your agents through the MCP server at `/mcp`.
 4. **Chat interfaces.** Chat with your agents from Slack, WhatsApp, Telegram, and Discord.
