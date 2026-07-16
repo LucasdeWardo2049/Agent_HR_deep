@@ -1,8 +1,6 @@
 # AgentOS: FastAPI for Agents
 
-AgentOS turns your agents into a production API.
-
-Build your product on top of a durable REST API with 80+ endpoints. Connect your agents to AI apps like Claude and ChatGPT using MCP, or chat interfaces like Slack, WhatsApp, Telegram, and Discord.
+AgentOS turns your agents into a production API. One AI backend that serves every frontend.
 
 ## Get Started
 
