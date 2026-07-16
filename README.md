@@ -2,7 +2,19 @@
 
 AgentOS turns your agents into a production API: 80+ endpoints for runs, sessions, memory, knowledge, and evals. Build your product on top of it, connect your agents to AI apps like Claude and ChatGPT, and chat interfaces like Slack, WhatsApp, Telegram, and Discord.
 
-AgentOS gives you one AI backend for every frontend:
+## Get Started
+
+Copy this prompt into Claude Code, Cursor, or Codex — it sets up the platform, then builds your first agent with you:
+
+```text
+Help me set up my agent platform and build my first agent.
+
+Clone https://github.com/agno-agi/agentos-railway.git into a folder called agent-platform and cd in, then read .agents/skills/setup-platform/SKILL.md and follow it end to end.
+```
+
+Your coding agent drives the whole flow: it checks Docker, sets up `.env`, boots the platform, proves the MCP endpoint live, builds your first agent with you, and connects the AgentOS UI. Prefer to drive yourself? See [Manual Setup](#manual-setup).
+
+## One AI backend for every frontend
 
 1. **Your product.** Call the REST API from your app: run agents, stream responses, and manage sessions, memory, and knowledge.
 2. **AgentOS UI.** Chat with agents, build new ones with AgentOS Studio, and inspect sessions, traces, memory, and evals from the AgentOS UI at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway).
@@ -22,23 +34,6 @@ This codebase comes with:
 - **Coding-agent skills** let Claude Code, Codex, Cursor, and other coding agents build, test, and improve the platform automatically — see [Using the platform](#using-the-platform).
 
 Trace data, agent code, evals, and system logs are all available to coding agents, so the platform can inspect and improve itself end to end.
-
-## Get Started
-
-The fastest way to get started is using a coding agent. Copy the prompt below into Claude Code, Cursor or Codex — it sets up the platform, then builds your first agent with you.
-
-```text
-Help me set up AgentOS on this machine and build my first agent. Be self-driving: anything you can do — open a file, open a URL, launch an app — do it. Stop when you need a human: typing a secret, installing software, signing in to a website. When you do stop, tell me exactly what to do. Never print or echo secret values.
-
-1. Clone https://github.com/agno-agi/agentos-railway.git into a folder called agent-platform and cd in. Then read AGENTS.md end to end — it is the source of truth for how this platform works and answers most questions you'll hit along the way.
-2. Confirm Docker is installed and running (`docker info` succeeds). If it's installed but not running, start it (`open -a Docker` on macOS) and poll until it's up. Stop for me only if Docker isn't installed — then give me steps to install Docker Desktop and wait.
-3. Set up my environment. Run `cp example.env .env`, then help me set my OPENAI_API_KEY. If it's already set in my shell, tell me you found one and offer to copy it in — move the value across without reading or printing it. Otherwise open .env in my editor (cursor, code etc.) and ask me to paste the key. Never open a terminal editor like vim or nano from your own shell — it will hang this session.
-4. Start the platform with `docker compose up -d --build`, then poll http://localhost:8000/docs until it returns 200 (first build takes a few minutes). If it never comes up, read `docker compose logs agentos-api` and fix what you find.
-5. Prove it end to end with ./scripts/mcp_check.sh — it should print "MCP OK" and a real agent answer. Show me that answer: it's my platform talking.
-6. Now the fun part. Tell me the platform is up and we're going to create my first agent — I can always run /create-new-agent later, but we're doing it together right now. Ask if I'm ready. When I say go, read .agents/skills/create-new-agent/SKILL.md and follow it through its smoke test: it works out what to build, then generates the agent, registers it, and proves it live. Show me my agent's first answer, then come back here — steps 7 and 8 take over from the skill's own closing handoff. (If I'd rather skip for now, that's fine — carry on and adapt the next steps.)
-7. My agent is alive — now give me a place to chat with it: the AgentOS UI. Ask if you can open https://os.agno.com and walk me through connecting: Connect OS → enter http://localhost:8000 → name it "Local AgentOS". My new agent is in the Agents list next to the built-in ones — that's where I chat with it and inspect sessions, memory, and evals. If I'd rather skip this, move on — I can connect anytime.
-8. Finish with a short summary of what we built and the loop I now own: /extend-agent to change my agent, /improve-agent to harden it, /create-new-agent whenever I want another. Mention in one line that I can also connect my platform to coding agents (like yourself) using `uvx agno connect`, and to claude.ai / ChatGPT over OAuth once it's deployed to production.
-```
 
 ## Manual Setup
 
