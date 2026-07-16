@@ -19,7 +19,7 @@ Copy this prompt into your favorite coding agent. It sets up the platform and bu
 ```text
 Help me set up my agent platform and build my first agent.
 
-Clone https://github.com/agno-agi/agentos-railway.git into a folder called agent-platform, cd in, and run the setup-platform skill.
+Clone https://github.com/agno-agi/agentos-railway.git into a folder called agent-platform, cd in, and run the setup-platform skill (in .agents/skills/).
 ```
 
 Your coding agent drives the whole flow: it checks Docker, sets up `.env`, boots the platform, verifies the MCP endpoint, builds your first agent with you, and connects to the AgentOS UI. Prefer to drive yourself? See [Manual Setup](#manual-setup).
