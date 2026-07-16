@@ -4,12 +4,12 @@ AgentOS turns your agents into a production API: 80+ endpoints for runs, session
 
 ## Get Started
 
-Copy this prompt into Claude Code, Cursor, or Codex — it sets up the platform, then builds your first agent with you:
+Copy this prompt into Claude Code, Cursor, or Codex. It sets up the platform and builds your first agent with you:
 
 ```text
 Help me set up my agent platform and build my first agent.
 
-Clone https://github.com/agno-agi/agentos-railway.git into a folder called agent-platform and cd in, then read .agents/skills/setup-platform/SKILL.md and follow it end to end.
+Clone https://github.com/agno-agi/agentos-railway.git into a folder called agent-platform, cd in, and run the setup-platform skill.
 ```
 
 Your coding agent drives the whole flow: it checks Docker, sets up `.env`, boots the platform, proves the MCP endpoint live, builds your first agent with you, and connects the AgentOS UI. Prefer to drive yourself? See [Manual Setup](#manual-setup).
