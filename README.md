@@ -1,10 +1,12 @@
 # AgentOS: FastAPI for Agents
 
-AgentOS turns your agents into a production API: 80+ endpoints for runs, sessions, memory, knowledge, and evals. Build your product on top of it, connect your agents to AI apps like Claude and ChatGPT, and chat interfaces like Slack, WhatsApp, Telegram, and Discord.
+AgentOS turns your agents into a production API.
+
+Build your product on top of a durable REST API with 80+ endpoints. Connect your agents to AI apps like Claude and ChatGPT using MCP, or chat interfaces like Slack, WhatsApp, Telegram, and Discord.
 
 ## Get Started
 
-Copy this prompt into Claude Code, Cursor, or Codex. It sets up the platform and builds your first agent with you:
+Copy this prompt into your favorite coding agent. It sets up the platform and builds your first agent with you:
 
 ```text
 Help me set up my agent platform and build my first agent.
@@ -12,7 +14,7 @@ Help me set up my agent platform and build my first agent.
 Clone https://github.com/agno-agi/agentos-railway.git into a folder called agent-platform, cd in, and run the setup-platform skill.
 ```
 
-Your coding agent drives the whole flow: it checks Docker, sets up `.env`, boots the platform, proves the MCP endpoint live, builds your first agent with you, and connects the AgentOS UI. Prefer to drive yourself? See [Manual Setup](#manual-setup).
+Your coding agent drives the whole flow: it checks Docker, sets up `.env`, boots the platform, verifies the MCP endpoint, builds your first agent with you, and connects to the AgentOS UI. Prefer to drive yourself? See [Manual Setup](#manual-setup).
 
 ## One AI backend for every frontend
 
