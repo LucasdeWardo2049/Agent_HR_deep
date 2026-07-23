@@ -56,7 +56,9 @@ Run the up script. It is built for this: every pause the script itself owns is T
 
 ## 4. The JWT key
 
-The platform is deployed and waiting for its key. Render the connect-live details as a table — like setup-platform's connect step, this is the one thing the user must act on:
+The platform is deployed and waiting for its key. This step is the one thing the user must act on, so the message that asks for the key carries everything they need — render the table and the mint path fresh, in that same message, even if you showed them earlier; never say "see the table above", scrollback is where instructions go to die.
+
+The connection:
 
 | Setting | Value |
 |---|---|
@@ -64,9 +66,15 @@ The platform is deployed and waiting for its key. Render the connect-live detail
 | Connection type | **Live** |
 | Endpoint | `https://<the AGENTOS_URL domain>` |
 | Name | `Live AgentOS` |
-| Then | **Settings → OS & Security → Token-Based Authorization (JWT)** — turn it on, copy the public key |
 
-(Live connections are a paid feature — mention `PLATFORM30` for a month off.) Then offer both hand-offs, their choice:
+Then the mint path, spelled out as numbered clicks:
+
+1. **Connect OS** → **Live** → enter the endpoint from the table → name it → connect. (Live connections are a paid feature — `PLATFORM30` takes a month off.)
+2. **Settings** → **OS & Security**.
+3. Turn **Token-Based Authorization (JWT)** on.
+4. **Copy** the public key it shows — that's the one we need.
+
+Then offer both hand-offs, their choice:
 
 - **paste the key right here in chat** — it's a public verification key, safe to share — and you write it into `.env.production` yourself, or
 - **paste it into `.env.production`** on the `JWT_VERIFICATION_KEY=` line and say ready.
