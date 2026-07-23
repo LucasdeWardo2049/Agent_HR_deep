@@ -77,4 +77,4 @@ Finish with a short summary of what you built together and the loop the user now
 - [`/improve-agent`](../improve-agent/SKILL.md) — recursively improve it using simulations and probes.
 - [`/create-new-agent`](../create-new-agent/SKILL.md) — whenever they want another.
 
-Mention in one line that they can also connect the platform to coding agents (like yourself) with `uvx agno connect`, and to claude.ai / ChatGPT over OAuth once the platform is deployed with a public URL.
+Mention in one line that they can also connect the platform to coding agents (like yourself) with `uvx agno connect`, and to claude.ai / ChatGPT over OAuth once the platform is deployed with a public URL — [`/deploy-platform`](../deploy-platform/SKILL.md) runs that deploy when they're ready.

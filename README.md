@@ -4,7 +4,7 @@ AgentOS turns your agents into a production API. One AI backend that serves ever
 
 1. **Your product.** Call the REST API from your app: run agents, stream responses, and manage sessions, memory, and knowledge.
 2. **AgentOS UI.** Chat with agents, build new ones, and inspect sessions, traces, memory, and evals from the AgentOS UI at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway).
-3. **Coding agents.** Manage the full agent development lifecycle (create, extend, improve, eval and review) using the skills in [`.agents/skills/`](.agents/skills/).
+3. **Coding agents.** Manage the full agent development lifecycle (create, extend, improve, eval, review — and deploy) using the skills in [`.agents/skills/`](.agents/skills/).
 4. **AI apps.** MCP clients like Claude and ChatGPT can use your agents through the MCP server at `/mcp`.
 5. **Chat interfaces.** Chat with your agents from Slack, WhatsApp, Telegram, and Discord.
 
@@ -70,7 +70,7 @@ Click **Chat** under **Platform Manager** and ask: "How healthy is the platform?
 
 ## Run in production
 
-You can run the platform anywhere that supports containerized images. This codebase comes with scripts to deploy the platform to [Railway](https://railway.com).
+You can run the platform anywhere that supports containerized images. This codebase comes with scripts to deploy the platform to [Railway](https://railway.com) — and a coding-agent skill, [`/deploy-platform`](.agents/skills/deploy-platform/SKILL.md), that drives them for you and verifies the live platform at the end.
 
 > **Prerequisite:** [Railway CLI](https://docs.railway.com/cli#installing-the-cli) installed and `railway login` completed.
 
