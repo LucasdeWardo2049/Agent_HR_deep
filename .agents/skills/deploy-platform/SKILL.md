@@ -52,11 +52,11 @@ Run the up script. It is built for this: every pause the script itself owns is T
 - First creates can be slow on some providers — twenty-plus minutes is normal; keep polling, don't declare failure early.
 - If the README names a browser step (e.g. applying a blueprint in the provider dashboard), relay those instructions first, then start the up script — its own poll absorbs the wait for the click.
 - When it finishes, read the live URL back from `AGENTOS_URL` in the env file — the script created the domain and persisted it there.
-- **A keyless first deploy refusing to start is by design, not failure:** with production auth on and no JWT key, the app exits at startup on purpose, so expect a crash-looping service. Check the provider logs (the README names the command; bound the read with a lines/limit flag — streaming forms run forever) and confirm the startup error is the missing JWT key — any other error, fix it first.
+- **A keyless first deploy refusing to start is by design, not failure:** with production auth on and no JWT key, the app exits at startup on purpose, so expect a crash-looping service. Tell the user this before they see it — the provider dashboard will show the deploy failing or restarting until the key lands in the next step; expected, deliberate, fixed by the key. Then check the provider logs yourself (the README names the command; bound the read with a lines/limit flag — streaming forms run forever) and confirm the startup error is the missing JWT key — any other error, fix it first.
 
 ## 4. The JWT key
 
-The platform is deployed and waiting for its key. This step is the one thing the user must act on, so the message that asks for the key carries everything they need — render the table and the mint path fresh, in that same message, even if you showed them earlier; never say "see the table above", scrollback is where instructions go to die.
+The platform is deployed and waiting for its key. Open the ask with the reassurance: the service is deliberately down right now — it refuses to start without this key, and it comes up on its own the moment we sync it in. This step is the one thing the user must act on, so the message that asks for the key carries everything they need — render the table and the mint path fresh, in that same message, even if you showed them earlier; never say "see the table above", scrollback is where instructions go to die.
 
 The connection:
 
