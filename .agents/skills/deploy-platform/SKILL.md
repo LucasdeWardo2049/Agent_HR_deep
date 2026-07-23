@@ -56,7 +56,7 @@ Run the up script. It is built for this: every pause the script itself owns is T
 
 ## 4. The JWT key
 
-The platform is deployed and waiting for its key. Open the ask with the reassurance: the service is deliberately down right now — it refuses to start without this key, and it comes up on its own the moment we sync it in. This step is the one thing the user must act on, so the message that asks for the key carries everything they need — render the table and the mint path fresh, in that same message, even if you showed them earlier; never say "see the table above", scrollback is where instructions go to die.
+The platform is deployed and waiting for its key. Make the stop unmistakable: you are **waiting on this key and won't move forward without it** — the deploy is paused on the user, not humming along in the background, so don't dress it up as progress. Pair that with the reassurance: the service is deliberately down right now — it refuses to start without the key, and it comes up on its own the moment we sync it in. This step is the one thing the user must act on, so the message that asks for the key carries everything they need — render the table and the mint path fresh, in that same message, even if you showed them earlier; never say "see the table above", scrollback is where instructions go to die.
 
 The connection:
 
@@ -80,6 +80,8 @@ Then offer both hand-offs, their choice:
 - **paste it into `.env.production`** on the `JWT_VERIFICATION_KEY=` line and say ready.
 
 Either way the PEM must land **quoted, preserving its own line breaks** — multi-line inside the quotes, exactly as the README's example shows; an unquoted or newline-collapsed PEM breaks parsing. Then push it with `env-sync.sh` — it applies the change itself (a restart, new revision, or deploy, depending on the provider); confirm from its closing message.
+
+And name the one honest alternative in the same message, clearly not recommended: authorization *can* be turned off (`RUNTIME_ENV=dev` in the production env file, then sync) — but that makes the AgentOS public, anyone with the URL can run the agents and read the data. Say you don't recommend it and why; the key is the way.
 
 ## 5. Prove it live
 
