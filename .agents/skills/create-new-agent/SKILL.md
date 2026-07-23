@@ -64,7 +64,7 @@ Build what makes *their* week easier. Resist the demo classics (news digest, gen
 An API key that the chosen toolkit **requires** and that isn't in `.env`. Check `.env` yourself first — don't ask the user what's in a file you can read. If a key is genuinely missing, say which toolkit needs it and offer the two real choices:
 
 - add the key to `.env` now (they paste it in; never read or print it), or
-- swap to a keyless toolkit and build right now.
+- swap to a keyless toolkit — or a keyless variant of the idea — and build right now. (Some jobs have no keyless route; then the key is the only real choice, so say so plainly.)
 
 Everything else — proceed and report.
 
