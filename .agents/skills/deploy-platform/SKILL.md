@@ -69,10 +69,9 @@ The connection:
 
 Then the mint path, spelled out as numbered clicks:
 
-1. **Connect OS** → **Live** → enter the endpoint from the table → name it → connect. (Live connections are a paid feature — `PLATFORM30` takes a month off.)
-2. **Settings** → **OS & Security**.
-3. Turn **Token-Based Authorization (JWT)** on.
-4. **Copy** the public key it shows — that's the one we need.
+1. **Connect OS** → **Live** → enter the endpoint from the table → name it. (Live connections are a paid feature — `PLATFORM30` takes a month off.)
+2. Flip **Token-Based Authorization (JWT)** on — the toggle is right on the connect panel — then **Connect**. The UI generates the public key; copy it, that's the one we need.
+3. Already connected, or can't find the toggle? **Settings → OS & Security → Token-Based Authorization (JWT)** — turn it on there and copy the key. Always mention this fallback.
 
 Then offer both hand-offs, their choice:
 

@@ -105,12 +105,10 @@ Token-Based Auth gives you three things:
 
 During `./scripts/railway/up.sh`, the script creates your Railway domain and pauses so you can mint the key before the app starts.
 
-1. Open [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway), click **Connect OS** → **Live**, enter your Railway domain, and connect.
-2. Name it **Live AgentOS**.
-3. Go to **Settings** → **OS & Security**.
-4. Turn **Token-Based Authorization (JWT)** on.
-5. Copy the public key.
-6. Paste the full public key into the `up.sh` prompt. The script saves it into your env file for future syncs:
+1. Open [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agentos-railway&utm_content=agentos-railway&utm_term=railway), click **Connect OS** → **Live**, and enter your Railway domain.
+2. Name it **Live AgentOS**, flip **Token-Based Authorization (JWT)** on — the toggle is right on the connect panel — and connect. The UI generates your public key. (Already connected without it? **Settings** → **OS & Security** → **Token-Based Authorization (JWT)**.)
+3. Copy the public key.
+4. Paste the full public key into the `up.sh` prompt. The script saves it into your env file for future syncs:
 
 ```sh
 JWT_VERIFICATION_KEY="-----BEGIN PUBLIC KEY-----
