@@ -56,7 +56,7 @@ Run the up script. It is built for this: every pause the script itself owns is T
 
 ## 4. The JWT key
 
-The platform is deployed and waiting for its key. Make the stop unmistakable: you are **waiting on this key and won't move forward without it** — the deploy is paused on the user, not humming along in the background, so don't dress it up as progress. Pair that with the reassurance: the service is deliberately down right now — it refuses to start without the key, and it comes up on its own the moment we sync it in. This step is the one thing the user must act on, so the message that asks for the key carries everything they need — render the table and the mint path fresh, in that same message, even if you showed them earlier; never say "see the table above", scrollback is where instructions go to die.
+The platform is deployed and waiting for its key. Frame the moment warmly and honestly: the deploy landed, but the platform isn't live *yet* — it ships with authorization on by default, because without it the platform would be public to anyone with the URL. So it's waiting for its key before it serves, and this is the one piece only the user can add; the moment it lands, the platform comes up on its own. Be clear the flow is paused on them — don't dress it up as background progress — but keep the tone friendly and humble, never "I won't move forward": you're explaining a sensible default, not issuing an ultimatum. The message that asks for the key carries everything they need — render the table and the mint path fresh, in that same message, even if you showed them earlier; never say "see the table above", scrollback is where instructions go to die.
 
 The connection:
 
