@@ -1,6 +1,6 @@
 ---
 name: deploy-platform
-description: Deploy this AgentOS to production with this template's deploy scripts — preflight the provider CLI and account, run the up script, walk the JWT key step, verify the live platform on its public URL, then hand over the redeploy/logs/teardown loop. Use when the user asks to deploy, ship to production, go live, or take the platform to prod.
+description: Deploy this AgentOS to production with this template's deploy scripts — preflight the provider CLI and account, run the up.sh script, complete the JWT key step, verify the live platform on its public URL, then hand over the redeploy/logs/teardown instructions. Use this skill when the user asks to deploy, ship to production, go live, or take the platform to prod.
 ---
 
 # Deploy the Platform

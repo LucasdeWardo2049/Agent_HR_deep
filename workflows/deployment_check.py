@@ -154,12 +154,6 @@ def _check_reference_components() -> CheckResult:
 
 
 def _check_schedules() -> CheckResult:
-    """The enabled bit is owned by the user (AgentOS UI / schedules API), not by env, so
-    the schedule rows are the truth worth reporting. By-name lookups stay correct however
-    many schedules a deploy accumulates — the paginated list would not. The DB layer
-    swallows read errors into None, so 'not registered' can also mean unreadable; the
-    Database check earlier in this report disambiguates."""
-
     def state(name: str) -> tuple[str, bool | None]:
         row = get_postgres_db().get_schedule_by_name(name)
         if row is None:
