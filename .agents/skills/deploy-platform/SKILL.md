@@ -9,7 +9,7 @@ description: Deploy this AgentOS to production with this template's deploy scrip
 
 You are taking a locally-proven platform to a live public URL. The wow moment is Step 5 — the platform answering on its own domain, gated by real auth, with the AgentOS UI connected **Live**. Deploying creates real, billed cloud resources: say so before creating anything, and name the teardown script in the same breath so the exit is always visible.
 
-**Be self-driving:** run every script and check yourself. Stop when progress needs a human: a provider login, a browser-only step, a key only they can mint. When you stop, give exact instructions — and for interactive commands (logins, guided prompts), tell the user to run them in a separate terminal window (their own Terminal/iTerm, not this chat: CLI logins need a real TTY plus a browser, and refuse anything less). Never print or echo secret values; the two exceptions are the JWT verification key (a public key) and the MCP connect secret the up script prints in its own summary — both are meant for the user's hands.
+**Be self-driving:** run every script and check yourself. Stop when progress needs a human: a provider login, a browser-only step, a key only they can mint. When you stop, give exact instructions — and for interactive commands (logins, guided prompts), tell the user to run them in a separate terminal window (their own Terminal/iTerm, not this chat: CLI logins need a real TTY plus a browser, and won't run without them). Never print or echo secret values; the two exceptions are the JWT verification key (a public key) and the MCP connect secret the up script prints in its own summary — both are meant for the user's hands.
 
 **Narrate the trip:** open with the map and the cost sentence together, shaped like this — tune the names to this repo and the mode you picked, keep the shape — then a line as each step starts and a word when it lands:
 
@@ -38,7 +38,7 @@ Read [`AGENTS.md`](../../../AGENTS.md), the README's production/deploy section, 
 
 ## 2. Preflight
 
-Three checks before anything is created:
+Four checks before anything is created:
 
 - **CLI + account.** Confirm the provider CLI the deploy scripts use is installed, and authed with a read-only probe (the scripts show which — a `whoami`-style command). Not logged in → stop and hand them the login command to run in a separate terminal window; when they say ready, re-run the auth probe to confirm before moving on.
 - **Cost + exit.** One sentence: this creates billed resources on their account, and `down.sh` (typed-name confirm; `--yes` for automation) deletes everything. No surprises in either direction.

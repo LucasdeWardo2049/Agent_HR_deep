@@ -26,7 +26,7 @@ Kicking off /setup-platform. Here's the map for this trip:
 
 ## 1. Read the manual
 
-Read [`AGENTS.md`](../../../AGENTS.md) end to end — it is the source of truth for how this platform works and answers most questions you'll hit along the way.
+Read [`AGENTS.md`](../../../AGENTS.md) end to end — it's the source of truth for how this platform works and answers most questions you'll hit along the way.
 
 ## 2. Docker
 
@@ -45,11 +45,11 @@ Start the platform with `docker compose up -d --build`, then poll http://localho
 
 ## 5. Prove it
 
-Run `./scripts/mcp_check.sh` — it should print "MCP OK" and a real agent answer. Quote that answer to the user — it's their platform manager talking. And let them know their AgentOS's MCP server is live.
+Run `./scripts/mcp_check.sh` — it should print "MCP OK" and a real agent answer. Quote that answer to the user — it's their platform manager talking. And let them know the platform's MCP server is live.
 
 ## 6. Connect the AgentOS UI
 
-Their platform is live — show them how to connect to the AgentOS UI so their first agent lands somewhere they can watch. The UI is where they chat with their agents and inspect sessions, memory, and evals. Open with the news that the platform is up and they should connect to it on os.agno.com, then render the connection details as a table, something like this:
+Their platform is live — show them how to connect to the AgentOS UI so their first agent lands somewhere they can watch. The UI is where they chat with their agents and inspect sessions, memory, and evals. Open with the news that the platform is up and it's time to connect to it on os.agno.com, then render the connection details as a table, something like this:
 
 | Setting | Value |
 |---|---|
