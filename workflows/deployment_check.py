@@ -153,16 +153,34 @@ def _check_reference_components() -> CheckResult:
     )
 
 
-def _check_schedule_flag() -> CheckResult:
-    deploy = env_flag("ENABLE_DEPLOY_CHECK", default=True)
-    evals = env_flag("ENABLE_SCHEDULED_EVALS", default=False)
-    if deploy and evals:
-        return _pass("Schedule", "Deployment-check and run-evals crons are armed.")
-    if deploy:
-        return _pass("Schedule", "Deployment-check cron is armed; run-evals cron is opt-in and disabled.")
-    if evals:
-        return _pass("Schedule", "Run-evals cron is armed; deployment-check cron is disabled.")
-    return _pass("Schedule", "Deployment-check and run-evals crons are disabled; run endpoints remain available.")
+def _check_schedules() -> CheckResult:
+    """The enabled bit is owned by the user (AgentOS UI / schedules API), not by env, so
+    the schedule rows are the truth worth reporting. By-name lookups stay correct however
+    many schedules a deploy accumulates — the paginated list would not. The DB layer
+    swallows read errors into None, so 'not registered' can also mean unreadable; the
+    Database check earlier in this report disambiguates."""
+
+    def state(name: str) -> tuple[str, bool | None]:
+        row = get_postgres_db().get_schedule_by_name(name)
+        if row is None:
+            return f"{name} not registered", None
+        enabled = bool(row["enabled"] if isinstance(row, dict) else row.enabled)
+        return f"{name} {'enabled' if enabled else 'disabled'}", enabled
+
+    try:
+        deploy_state, _deploy_enabled = state("deployment-check")
+        evals_state, evals_enabled = state("run-evals")
+    except Exception as exc:
+        return _warn("Schedule", f"Could not read schedules from the database: {exc}")
+
+    detail = f"{deploy_state}; {evals_state}."
+    if evals_enabled is None:
+        return _warn("Schedule", f"{detail} If the Database check passed, restart the API to register it.")
+    if "not registered" in deploy_state and env_flag("ENABLE_DEPLOY_CHECK", default=True):
+        return _warn("Schedule", f"{detail} If the Database check passed, restart the API to register it.")
+    if evals_enabled is False:
+        return _pass("Schedule", f"{detail} Enable run-evals from the AgentOS UI for scheduled eval runs.")
+    return _pass("Schedule", detail)
 
 
 def _format_report(checks: list[CheckResult]) -> str:
@@ -189,7 +207,7 @@ async def deployment_check_step(_step_input: StepInput) -> StepOutput:
         await _check_mcp(),
         _check_slack_config(),
         _check_reference_components(),
-        _check_schedule_flag(),
+        _check_schedules(),
     ]
     failed = any(check.status == "FAIL" for check in checks)
     return StepOutput(content=_format_report(checks), success=not failed)
