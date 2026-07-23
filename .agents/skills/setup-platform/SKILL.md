@@ -11,7 +11,18 @@ You are taking the user from a fresh clone to a running platform with their firs
 
 **Be self-driving:** anything you can do — open a file, open a URL, launch an app — do it. Stop when progress needs a human: typing a secret, installing software, a sign-in the flow can't continue without. When you do stop, tell the user exactly what to do. Never print or echo secret values.
 
-**Narrate the trip:** open with a quick map of what's about to happen — check Docker, set up the env, boot the platform, check the MCP connection, connect the UI, build the first agent — then a line as each step starts and a word when it lands. Light touch: a sentence or two per step, so the user always knows where they are and what's left.
+**Narrate the trip:** open with a quick map of what's about to happen, shaped like this — tune the words, keep the shape — then a line as each step starts and a word when it lands. Light touch: a sentence or two per step, so the user always knows where they are and what's left.
+
+```text
+Kicking off /setup-platform. Here's the map for this trip:
+
+1. Docker — confirm it's installed and running
+2. Environment — .env and your OpenAI key
+3. Boot — build and start the platform containers
+4. Prove it — a real agent answer over the MCP endpoint
+5. Connect the UI — os.agno.com, one click
+6. First agent — we build it together, live
+```
 
 ## 1. Read the manual
 

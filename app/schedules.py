@@ -40,6 +40,8 @@ def _register(
             description=description,
             if_exists="update",
         )
+        # A new schedule lands in the DB with updated_at unset; follow-on writes
+        # (updates, enable/disable) set it. Unset means this boot created the row.
         created = schedule.updated_at is None
         if created and not enabled:
             disabled = manager.disable(schedule.id)

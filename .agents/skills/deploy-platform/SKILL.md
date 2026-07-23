@@ -11,7 +11,22 @@ You are taking a locally-proven platform to a live public URL. The wow moment is
 
 **Be self-driving:** run every script and check yourself. Stop when progress needs a human: a provider login, a browser-only step, a key only they can mint. When you stop, give exact instructions — and for interactive commands (logins, guided prompts), tell the user they can type `! <command>` to run it in their own terminal. Never print or echo secret values; the two exceptions are the JWT verification key (a public key) and the MCP connect secret the up script prints in its own summary — both are meant for the user's hands.
 
-**Narrate the trip:** open with a map — preflight, production env, deploy, the JWT key, prove it live, hand over — then a line as each step starts and a word when it lands.
+**Narrate the trip:** open with the map and the cost sentence together, shaped like this — tune the names to this repo and the mode you picked, keep the shape — then a line as each step starts and a word when it lands:
+
+```text
+Kicking off /deploy-platform. Here's the map for this trip:
+
+1. Read the deploy layer — this repo's scripts + README, pick the mode
+2. Preflight — provider CLI + login, cost and exit, production env
+3. Deploy — the up script (compute + Postgres + public domain)
+4. JWT key — connect os.agno.com Live, land the public key, sync it
+5. Prove it live — logs, /docs 200, /mcp 401 challenge, UI Connect
+6. Hand over — redeploy, logs, teardown, chat + coding-agent connect
+
+One thing up front: this creates real, billed resources on your account.
+The exit is always one command away — the down script deletes everything
+(it asks you to confirm; --yes skips).
+```
 
 ## 1. Read the deploy layer
 
