@@ -4,7 +4,7 @@ Platform Manager Agent
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -30,7 +30,7 @@ _db = get_postgres_db()
 def _iso(timestamp: Any) -> Any:
     """Epoch seconds → ISO 8601 UTC; anything else passes through untouched."""
     if isinstance(timestamp, (int, float)):
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
+        return datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
     return timestamp
 
 

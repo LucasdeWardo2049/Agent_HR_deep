@@ -15,13 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Pinned on purpose. CI runs `uv run ruff`, which fetches the newest release, so
-# an unpinned linter turns someone else's release into a red build on a branch
-# that did not change. ruff 0.16 both started formatting Python inside Markdown
-# and widened its default rule set to flag the fail-soft `except Exception`
-# handlers in app/schedules.py and workflows/deployment_check.py that this
-# template documents and wants. Bump deliberately, not by accident.
-dev = ["mypy>=1.18,<2", "ruff>=0.15,<0.16"]
+dev = ["mypy", "ruff"]
 
 [build-system]
 requires = ["setuptools"]
@@ -33,11 +27,23 @@ namespaces = false
 
 [tool.ruff]
 line-length = 120
-# Markdown is excluded deliberately. ruff 0.16 began formatting Python code
-# blocks inside .md, which reformats the illustrative snippets in AGENTS.md and
-# README.md — prose examples, not source. Without this, `ruff format --check`
-# passes or fails depending on which ruff version the runner happens to fetch.
+# Markdown is excluded deliberately: ruff 0.16 began formatting Python code
+# blocks inside .md, which rewrites the illustrative snippets in AGENTS.md and
+# README.md — prose examples, not source.
 exclude = [".venv*", "*.md"]
+
+[tool.ruff.lint]
+# Declared, not inherited. ruff's *default* selection went from 122 rules to 830
+# in 0.16, so a repo that relies on the default gets a different linter with
+# every release — CI fetches the newest ruff, and a branch that changed nothing
+# goes red. Naming the families pins the behaviour without pinning the tool.
+#   E, F  — what this template has always enforced
+#   I     — import order, already applied by scripts/format.sh
+#   UP    — a public template should show current idiom
+# Not selected: BLE (blind-except), because app/schedules.py and
+# workflows/deployment_check.py catch broadly on purpose — a bad schedule logs a
+# warning instead of crashing startup, which AGENTS.md documents as the design.
+select = ["E", "F", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
