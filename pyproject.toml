@@ -15,7 +15,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "ruff"]
+# Pinned on purpose. CI runs `uv run ruff`, which fetches the newest release, so
+# an unpinned linter turns someone else's release into a red build on a branch
+# that did not change. ruff 0.16 both started formatting Python inside Markdown
+# and widened its default rule set to flag the fail-soft `except Exception`
+# handlers in app/schedules.py and workflows/deployment_check.py that this
+# template documents and wants. Bump deliberately, not by accident.
+dev = ["mypy>=1.18,<2", "ruff>=0.15,<0.16"]
 
 [build-system]
 requires = ["setuptools"]
@@ -27,7 +33,11 @@ namespaces = false
 
 [tool.ruff]
 line-length = 120
-exclude = [".venv*"]
+# Markdown is excluded deliberately. ruff 0.16 began formatting Python code
+# blocks inside .md, which reformats the illustrative snippets in AGENTS.md and
+# README.md — prose examples, not source. Without this, `ruff format --check`
+# passes or fails depending on which ruff version the runner happens to fetch.
+exclude = [".venv*", "*.md"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
