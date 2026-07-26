@@ -4,7 +4,7 @@ Platform Manager Agent
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -190,6 +190,176 @@ async def run_deployment_check() -> str:
     return str(content) if content else "Deployment check completed but produced no report."
 
 
+def get_platform_metrics(days: int = 7) -> str:
+    """Daily platform usage: agent, team, and workflow runs and sessions, how many distinct
+    users, token spend broken out by kind, and which models served the traffic.
+
+    Args:
+        days: How many days back to report, ending today.
+    """
+    # agno only computes these aggregates on demand, so a platform nobody has refreshed
+    # reports nothing at all. The call is self-limiting — dates already complete are
+    # skipped — and it writes only derived rollups of sessions that already exist.
+    stale_note = None
+    try:
+        _db.calculate_metrics()
+    except Exception as exc:
+        stale_note = f"Could not refresh metrics before reading, so these may be stale: {exc}"
+
+    ending_date = datetime.now(UTC).date()
+    starting_date = ending_date - timedelta(days=max(days, 1) - 1)
+    rows, updated_at = _db.get_metrics(starting_date=starting_date, ending_date=ending_date)
+
+    days_out: list[dict[str, Any]] = []
+    totals = {"runs": 0, "sessions": 0, "tokens": 0}
+    models: dict[str, int] = {}
+    for row in rows:
+        record = dict(row)
+        runs = sum(int(record.get(key) or 0) for key in ("agent_runs_count", "team_runs_count", "workflow_runs_count"))
+        sessions = sum(
+            int(record.get(key) or 0)
+            for key in ("agent_sessions_count", "team_sessions_count", "workflow_sessions_count")
+        )
+        tokens = {
+            key: value for key, value in (record.get("token_metrics") or {}).items() if isinstance(value, int) and value
+        }
+        for model in record.get("model_metrics") or []:
+            if isinstance(model, dict) and model.get("model_id"):
+                models[str(model["model_id"])] = models.get(str(model["model_id"]), 0) + int(model.get("count") or 0)
+        totals["runs"] += runs
+        totals["sessions"] += sessions
+        totals["tokens"] += int(tokens.get("total_tokens") or 0)
+        days_out.append(
+            {
+                "date": str(record.get("date")),
+                "runs": runs,
+                "sessions": sessions,
+                "users": record.get("users_count"),
+                "tokens": tokens,
+            }
+        )
+
+    if not days_out:
+        return json.dumps(
+            {
+                "days": [],
+                "note": stale_note
+                or "No usage recorded in this window — expected on a platform that has not been "
+                "used yet. Metrics are derived from sessions, so they appear once agents run.",
+            }
+        )
+
+    days_out.sort(key=lambda day: str(day["date"]), reverse=True)
+    payload: dict[str, Any] = {
+        "window": {"from": starting_date.isoformat(), "to": ending_date.isoformat()},
+        "totals": totals,
+        "models": [{"model_id": model_id, "runs": count} for model_id, count in sorted(models.items())],
+        "days": days_out,
+        "metrics_updated_at": _iso(updated_at),
+    }
+    if stale_note:
+        payload["note"] = stale_note
+    return json.dumps(payload, default=str)
+
+
+def _percentile(values: list[int], percentile: float) -> int | None:
+    """Nearest-rank percentile — no numpy, and correct enough for latency reporting."""
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, int(round((percentile / 100) * (len(ordered) - 1))))
+    return ordered[index]
+
+
+def get_run_activity(days: int = 7, limit: int = 500) -> str:
+    """Run activity per component from execution traces: how many runs, how slow they were
+    (average, p95, slowest), and how many failed. The runtime counterpart to eval history —
+    this is how the platform is actually performing, not whether its answers are correct.
+
+    Args:
+        days: How many days back to look, ending now.
+        limit: Maximum number of traces to aggregate, newest first.
+    """
+    start_time = datetime.now(UTC) - timedelta(days=max(days, 1))
+    traces, total = _db.get_traces(start_time=start_time, limit=limit)
+    if not traces:
+        return json.dumps(
+            {
+                "components": [],
+                "note": "No traces recorded in this window. Tracing is enabled in app/main.py "
+                "(`tracing=True`); traces appear once agents, teams, or workflows run.",
+            }
+        )
+
+    buckets: dict[str, dict[str, Any]] = {}
+    transport: dict[str, dict[str, Any]] = {}
+    failures: list[dict[str, Any]] = []
+    for trace in traces:
+        record = trace.to_dict() if hasattr(trace, "to_dict") else dict(trace)
+        component = record.get("agent_id") or record.get("team_id") or record.get("workflow_id")
+        # Traces with no component id are transport-level (an /mcp call, an HTTP request).
+        # They wrap component runs already counted below, so keep them in a separate bucket
+        # rather than letting them read as another agent and double-count the same work.
+        target = buckets if component else transport
+        bucket = target.setdefault(
+            str(component or record.get("name") or "?"), {"runs": 0, "errors": 0, "durations": []}
+        )
+        bucket["runs"] += 1
+        failed = str(record.get("status") or "").upper() not in ("OK", "UNSET") or int(record.get("error_count") or 0)
+        if failed:
+            bucket["errors"] += 1
+            if len(failures) < 10:
+                failures.append(
+                    {
+                        "component": str(component),
+                        "status": record.get("status"),
+                        "error_count": record.get("error_count"),
+                        "session_id": record.get("session_id"),
+                        "created_at": record.get("created_at"),
+                    }
+                )
+        duration = record.get("duration_ms")
+        if isinstance(duration, (int, float)):
+            bucket["durations"].append(int(duration))
+
+    def summarize(source: dict[str, dict[str, Any]], label: str) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for name, bucket in source.items():
+            durations = cast(list[int], bucket["durations"])
+            rows.append(
+                {
+                    label: name,
+                    "runs": bucket["runs"],
+                    "errors": bucket["errors"],
+                    "avg_ms": round(sum(durations) / len(durations)) if durations else None,
+                    "p95_ms": _percentile(durations, 95),
+                    "max_ms": max(durations) if durations else None,
+                }
+            )
+        rows.sort(key=lambda row: cast(int, row["runs"]), reverse=True)
+        return rows
+
+    payload: dict[str, Any] = {
+        "window_days": days,
+        "traces_aggregated": len(traces),
+        "components": summarize(buckets, "component"),
+        "recent_failures": failures,
+    }
+    if transport:
+        payload["transport"] = {
+            "note": "Endpoint-level traces (e.g. /mcp calls). These wrap the component runs "
+            "above rather than adding to them — do not sum the two.",
+            "endpoints": summarize(transport, "endpoint"),
+        }
+    if total > len(traces):
+        # Never let a sample read as the whole picture.
+        payload["truncated"] = (
+            f"Aggregated the {len(traces)} most recent of {total} traces in this window. "
+            "Raise `limit` or narrow `days` for a complete picture."
+        )
+    return json.dumps(payload, default=str)
+
+
 def list_platform_components(limit: int = 50) -> str:
     """Agents, teams, and workflows built at runtime by Agent Builder, with type and current version.
 
@@ -217,8 +387,21 @@ You have two lenses; pick by question, combine them when diagnosing:
   judge's reason on failures), `get_deployment_check_report` (readiness of DB, auth,
   scheduler URL, MCP reachability, Slack, schedule state, component imports),
   `run_deployment_check` (fresh readiness report on demand), `list_schedules` (crons,
-  next runs, and each schedule's last trigger outcome), `list_platform_components`
+  next runs, and each schedule's last trigger outcome), `get_platform_metrics` (daily
+  runs, sessions, distinct users, token spend, model mix), `get_run_activity` (per-component
+  run counts, latency, and failures from execution traces), `list_platform_components`
   (components built at runtime by Agent Builder).
+
+Usage questions ("how much are we spending", "who uses this", "is it getting slower") split
+across two tools: `get_platform_metrics` is the ledger — volume, users, and tokens per day —
+while `get_run_activity` is the stopwatch, showing which component is slow or failing. Reach
+for metrics to answer cost and adoption, activity to answer performance. When a component
+shows errors in `get_run_activity`, check `get_eval_history` before blaming the code: a run
+that failed and an answer that was wrong are different faults with different fixes.
+
+Report latency in seconds when it runs to seconds, and always say how many runs a number
+came from — an average over three runs is an anecdote, not a trend. If `get_run_activity`
+reports `truncated`, say so rather than presenting the sample as the whole picture.
 
 The run-evals schedule ships disabled by design — it spends model calls — so
 `enabled=false` on it is not a fault: enabling it is a UI action (or
@@ -227,6 +410,9 @@ POST /schedules/{id}/enable), never a code change.
 Diagnostics are within your read-only mandate: `run_deployment_check` is deterministic,
 free, and non-mutating — when no deployment-check report exists or the latest looks stale,
 run it and answer from the fresh result instead of telling the user how to run it.
+`get_platform_metrics` refreshes before it reads on the same grounds: the aggregates it
+recomputes are derived from sessions that already exist, so it changes no platform state.
+Neither is a licence to mutate anything else.
 
 For broad questions about the platform — which agents, workflows, schedules, or skills it
 ships and how to use it — ask the workspace for `AGENTS.md` (the repo's source-of-truth
@@ -270,6 +456,8 @@ platform_manager = Agent(
         get_deployment_check_report,
         run_deployment_check,
         list_schedules,
+        get_platform_metrics,
+        get_run_activity,
         list_platform_components,
     ],
     instructions=INSTRUCTIONS + codebase_context.instructions(),

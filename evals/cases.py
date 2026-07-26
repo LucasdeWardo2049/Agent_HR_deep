@@ -67,8 +67,8 @@ def snapshot_brain_state() -> dict[str, set[str]]:
     `user_profile_<user_id>`, `memories_<user_id>`), and an entity's facts,
     events and relationships all live inside one row — so a case that *merges*
     into a row or a note that already existed is invisible here and survives the
-    teardown. That is why every fixture below uses names no real brain would
-    hold: keep a case's writes on rows it created, and the diff can undo them.
+    teardown. That is why every fixture below uses names no real team would have
+    on file: keep a case's writes on rows it created, and the diff can undo them.
     """
     return {
         "learning_ids": {str(row["learning_id"]) for row in eval_db.get_learnings(limit=1000)},
@@ -94,7 +94,7 @@ def delete_new_brain_state(pre_run: dict[str, set[str]]) -> None:
 
 
 async def cleanup_new_brain_state(pre_run: dict[str, set[str]], result: CaseResult) -> None:
-    """`teardown` hook for cases whose run may write to Chief's brain (capture is
+    """`teardown` hook for cases whose run may write to Chief's stores (capture is
     ungated, so entities and notes really land in the DB). The runner invokes it
     on pass, fail, error, and timeout alike, with the `setup` snapshot as context."""
     if result.timed_out:
@@ -112,11 +112,11 @@ _WEB_TOOL = "parallel_search" if getenv("PARALLEL_API_KEY") else "web_search"
 CASES: tuple[Case, ...] = (
     # Chief — capture: the fact lands in the entity graph (reliability) and the
     # reply confirms it briefly (judge). The snapshot-diff teardown removes
-    # whatever the case wrote to the shared brain.
+    # whatever the case wrote to the shared stores.
     #
     # The names are deliberately unreal. An earlier version of this case said
     # "Sarah Chen is leading the new radar project" — a paraphrase of Chief's own
-    # quick prompt in app/config.yaml — so on any brain where a user had clicked
+    # quick prompt in app/config.yaml — so on any platform where a user had clicked
     # that prompt, the case merged into their real `radar` entity and note:
     # superseding their fact, replacing their relationship, rewriting their note
     # lines. None of it revertible, because the rows pre-existed the snapshot.
@@ -313,7 +313,7 @@ CASES: tuple[Case, ...] = (
         ),
     ),
     # --- Your cases — authored by /create-evals ---
-    # Chief — honesty on an empty brain: a recall probe for something never discussed
+    # Chief — honesty with nothing on file: a recall probe for something never discussed
     # must produce a grounded no (says what it holds and searched — the entity
     # directory and its notes), never a fabricated status. Instructions: "a grounded no".
     Case(

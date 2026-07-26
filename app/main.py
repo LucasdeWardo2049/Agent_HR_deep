@@ -29,7 +29,7 @@ agentos_url = getenv("AGENTOS_URL", "http://127.0.0.1:8000")
 # ---------------------------------------------------------------------------
 # Interfaces
 # - The Chief agent becomes available on Slack when both env vars are set:
-#   the team's second brain, sharing notes and entities with every frontend.
+#   the team mascot, sharing notes and entities with every frontend.
 # ---------------------------------------------------------------------------
 SLACK_BOT_TOKEN = getenv("SLACK_BOT_TOKEN", "")
 SLACK_SIGNING_SECRET = getenv("SLACK_SIGNING_SECRET", "")

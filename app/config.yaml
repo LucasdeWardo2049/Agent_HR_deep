@@ -1,28 +1,26 @@
 manifest:
   # --- Agents ---
 
+  chief:
+    description: "The team mascot. Tell Chief anything (decisions, what you learned, what you had for lunch)."
+    quick_prompts:
+      - "Hey Chief,  we're getting zapatos from garaje"
+      - "Chief, we're going with planetscale over RDS"
+      - "What's up chief?"
+
   agent-builder:
     description: "Creates agents, teams, and workflows using the AgentOS Studio."
     quick_prompts:
+      - "Build an agent like chief but sassier"
       - "Build an agent that tracks AI news and writes a daily brief"
-      - "Build a multi-agent team with the chief and platform manager agents"
-      - "Build a workflow that researches a topic, drafts a report, and works with me on improving it"
+      - "Build a multi-agent team with the chief and platform manager"
 
   platform-manager:
-    description: "Understands, monitors, and explains this AgentOS — codebase context plus read-only runtime diagnostics, with next-step recommendations."
+    description: "Understands, monitors, and explains this AgentOS. Codebase context, runtime diagnostics, usage patterns."
     quick_prompts:
-      - "Describe this platform: agents, workflows, and schedules"
-      - "Run a deployment check and explain anything that fails"
-      - "What's scheduled to run, and did the last triggers succeed?"
-      - "Teach me how to use this AgentOS"
-
-  chief:
-    description: "The one your team tags in — Chief holds the thread (people, projects, decisions, notes) and answers with the state of play and the next move."
-    quick_prompts:
-      - "Hey Chief — Sarah is leading the new radar project"
-      - "Chief, what's happening? Who's on what?"
-      - "What's the latest from Agno? File anything worth keeping"
-      - "I prefer short, direct answers — remember that"
+      - "Tell me about this AgentOS"
+      - "Share some usage patterns"
+      - "Which agent is slowest, and is anything failing?"
 
   # --- Workflows ---
 
@@ -32,6 +30,6 @@ manifest:
       - "Run the deployment check"
 
   run-evals:
-    description: "Run a tagged subset of the eval suite."
+    description: "Run a subset of the eval suite."
     quick_prompts:
       - "Run the smoke evals"
