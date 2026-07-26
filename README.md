@@ -28,7 +28,7 @@ Your coding agent drives the whole flow: it checks Docker, sets up `.env`, boots
 
 This codebase comes with:
 
-- **Chief, your team's second brain.** It remembers the people, projects, and decisions around your work, keeps living notes, and learns how you work — and because every frontend talks to the same brain, what you tell it in Slack is there when you ask from claude.ai or ChatGPT.
+- **Chief, the one your team tags in.** "Chief, what's happening with radar?" "Chief, help plan this." It holds the thread — people, projects, decisions, living notes — learns how you work, and answers with the state of play and the next move. Every frontend talks to the same Chief: what you tell it in Slack is there when you ask from claude.ai or ChatGPT.
 - **Two platform agents** that help you build and run the platform from your favorite AI apps like Claude and ChatGPT. **Agent Builder** creates agents, teams, and workflows using the AgentOS Studio. **Platform Manager** understands, monitors, and explains the platform: codebase questions, eval history, deployment checks, schedules.
 - **Coding-agent skills** let Claude Code, Codex, Cursor, and other coding agents build, test, and improve the platform automatically — see [Using the platform](#using-the-platform).
 
@@ -71,7 +71,7 @@ Click **Chat** under **Platform Manager** and ask: "How healthy is the platform?
 
 ### Step 5: Meet Chief
 
-Click **Chat** under **Chief** and tell it what you're working on: "Remember: I'm building a support bot, and Priya reviews my launches." It files the who and what as entities, the why as notes, and what it learns about you stays yours. Every frontend — this UI, Slack, claude.ai, ChatGPT — talks to the same brain.
+Click **Chat** under **Chief** and tell it what you're working on: "Hey Chief — I'm building a support bot, and Priya reviews my launches." It files the who and what as entities, the why as notes, and what it learns about you stays yours. From then on, tag it in from anywhere — this UI, Slack, claude.ai, ChatGPT — and ask "Chief, what's happening?": same thread everywhere.
 
 ## Run in production
 
