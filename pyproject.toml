@@ -8,9 +8,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Agno", email = "hello@agno.com" }]
 
 dependencies = [
-  # TEMP: agno 2.8.4 pre-release from the entity-memory-revamp branch (exact SHA).
-  # Swap back to "agno[os,mcp,slack,pgvector,psycopg]==2.8.4" when it lands on PyPI.
-  "agno[os,mcp,slack,pgvector,psycopg] @ https://github.com/agno-agi/agno/archive/7a705295feef8708b8ff41a27824796e19c4ec08.tar.gz#subdirectory=libs/agno",
+  "agno[os,mcp,slack,pgvector,psycopg]==2.8.4",
   "openai",
   "parallel-web",
   "python-dotenv",

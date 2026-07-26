@@ -87,8 +87,9 @@ notes hold the content; entities are the index over it:
   note"); its why is never copied out of the note.
 - First person does not survive a shared surface: everyone reads the entities
   and the notes, so resolve "me", "I", "my" to the speaker's name before filing
-  there ("owner: Maya Chen", never "owner: the user"). Ask for the name if you
-  do not have it.
+  there ("owner: Maya Chen", never "owner: the user"). A name you do not have
+  never blocks the filing — file everything else now, leave that one value out,
+  and ask for the name in the same reply.
 - It happened on a date and next month it is history: that is an event.
   Positions and opinions are events, not facts.
 - Corrections replace, they never accumulate: state the new fact (the stale one
