@@ -23,7 +23,7 @@ The platform is on `http://localhost:8000` (`RUNTIME_ENV=dev`). Compose runs uvi
   ```
 
   Empty result = the container's `/app` is bound to a different repo path. Either `cd` to that repo or restart the container from this directory (`docker compose down && docker compose up -d --build`).
-- Ask the user for the target agent **slug** (e.g. `web-search`).
+- Ask the user for the target agent **slug** (e.g. `chief`).
 - Recommend the user create a feature branch (`git checkout -b extend/<slug>-$(date +%Y%m%d)`) so any wrong turns are easy to revert.
 
 ## 1. Read the agent first
@@ -32,7 +32,7 @@ Open `agents/<slug>.py`. Capture:
 
 - **Stated purpose** — the file's docstring + the `INSTRUCTIONS` string.
 - **Tools** — what's wired and what each one does.
-- **Pattern** — direct tools (like [`agents/web_search.py`](../../../agents/web_search.py)), context provider (the `codebase_context` wiring in [`agents/platform_manager.py`](../../../agents/platform_manager.py)), or a mix (Platform Manager also carries direct read-only runtime tools; Agent Builder is the Studio-tools pattern with delete-only confirmation gates).
+- **Pattern** — direct tools (like the notes toolkit in [`agents/chief.py`](../../../agents/chief.py), which also composes a `learning=` machine), context provider (the `codebase_context` wiring in [`agents/platform_manager.py`](../../../agents/platform_manager.py)), or a mix (Platform Manager also carries direct read-only runtime tools; Agent Builder is the Studio-tools pattern with delete-only confirmation gates).
 - **Existing levers** — `enable_agentic_memory`, `num_history_runs`, `knowledge=`, model id.
 
 Restate the agent's purpose to the user in 1-2 sentences before asking what to change. This catches "I thought it did X but actually it does Y" upfront.
@@ -163,29 +163,29 @@ A simple change (one tool, one prompt refinement) takes 5-10 minutes. A capabili
 
 ## Worked example
 
-Target: `web-search`. The user wants the agent to also be able to read PDFs from URLs.
+Target: `chief`. The user wants Chief to also be able to read pages and PDFs from URLs, so "file this link" captures the content, not just the address.
 
 **Step 2** — user picks "Add a tool."
 
-**Step 3** — search the agno-docs MCP for "PDF" and "fetch." Find that `MCPTools` with the existing Parallel endpoint already covers `web_fetch` for HTML, but PDF parsing isn't included. Find `agno.tools.jina` (Jina Reader turns any URL, PDF, or HTML into clean markdown) — capture import, env var (`JINA_API_KEY`, optional — it works keyless, a key just raises the rate ceiling), pip dep (`jina`).
+**Step 3** — search the agno-docs MCP for "PDF" and "fetch." Find `agno.tools.jina` (Jina Reader turns any URL, PDF, or HTML into clean markdown) — capture import, env var (`JINA_API_KEY`, optional — it works keyless, a key just raises the rate ceiling), pip dep (`jina`).
 
-**Step 4** — propose: *"Add `JinaReaderTools` so `web-search` can fetch and parse PDFs. Needs `jina` in `pyproject.toml`; works keyless, set `JINA_API_KEY` for higher limits. Add a quick prompt that exercises a PDF URL."* User says yes.
+**Step 4** — propose: *"Add `JinaReaderTools` so `chief` can fetch and parse the links you hand it before filing them. Needs `jina` in `pyproject.toml`; works keyless, set `JINA_API_KEY` for higher limits. Add a quick prompt that exercises a PDF URL."* User says yes.
 
-Edit `agents/web_search.py` to import `JinaReaderTools` and add it to `tools=[web_tools, JinaReaderTools()]`. Add `jina` to `pyproject.toml` (and optionally `JINA_API_KEY=` to [`example.env`](../../../example.env)). Add a quick prompt to the agent's manifest entry in `app/config.yaml`:
+Edit `agents/chief.py` to import `JinaReaderTools` and add it to `tools=[notes.tools(), JinaReaderTools()]`. Add `jina` to `pyproject.toml` (and optionally `JINA_API_KEY=` to [`example.env`](../../../example.env)). Add a quick prompt to the agent's manifest entry in `app/config.yaml`:
 
 ```yaml
 manifest:
-  web-search:
+  chief:
     quick_prompts:
-      - "Summarize the abstract of https://arxiv.org/pdf/2501.12948"
+      - "Read https://arxiv.org/pdf/2501.12948 and file what matters"
 ```
 
 **Step 5** — pip deps changed: `./scripts/generate_requirements.sh && docker compose up -d --build`. Poll `/health`.
 
-**Step 6** — cURL the agent with the quick prompt. Logs show `Running: read_url(` against the arxiv URL. Response is grounded in the PDF content.
+**Step 6** — cURL the agent with the quick prompt. Logs show `Running: read_url(` against the arxiv URL, then a note write with the distilled content.
 
 **Step 7** — user says "no, that's it."
 
-**Step 8** — diff summary, commit `feat(web-search): add JinaReaderTools for PDF fetching`, recommend the `improve-agent` skill to harden the broader behavior.
+**Step 8** — diff summary, commit `feat(chief): add JinaReaderTools for URL and PDF capture`, recommend the `improve-agent` skill to harden the broader behavior.
 
 That's the loop. Most sessions are smaller — one tool, one rule, one bug.

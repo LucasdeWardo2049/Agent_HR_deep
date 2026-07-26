@@ -5,7 +5,7 @@ manifest:
     description: "Creates agents, teams, and workflows using the AgentOS Studio."
     quick_prompts:
       - "Build an agent that tracks AI news and writes a daily brief"
-      - "Build a multi-agent team with web search and platform manager agents"
+      - "Build a multi-agent team with the chief and platform manager agents"
       - "Build a workflow that researches a topic, drafts a report, and works with me on improving it"
 
   platform-manager:
@@ -16,12 +16,12 @@ manifest:
       - "What's scheduled to run, and did the last triggers succeed?"
       - "Teach me how to use this AgentOS"
 
-  web-search:
-    description: "Searches the web and answers with grounded information."
+  chief:
+    description: "Your team's second brain — remembers people, projects, and decisions, keeps living notes, and learns how you work."
     quick_prompts:
-      - "Tell me about Agno's AgentOS"
-      - "What's the latest research from Anthropic?"
-      - "Search for OpenAI's latest model release"
+      - "Remember: Sarah is leading the new radar project"
+      - "Who's working on what?"
+      - "I prefer short, direct answers — remember that"
 
   # --- Workflows ---
 

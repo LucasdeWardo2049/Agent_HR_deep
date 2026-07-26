@@ -25,7 +25,7 @@ This is a **single-pass** loop. One pass usually takes 15-30 minutes depending o
   ```
 
   Empty result = the container's `/app` is bound to a different repo path. Either `cd` to that repo or restart the container from this directory (`docker compose down && docker compose up -d --build`).
-- Ask the user for the target agent **slug** (e.g. `web-search`).
+- Ask the user for the target agent **slug** (e.g. `chief`).
 - Recommend the user create a feature branch (`git checkout -b improve/<slug>-$(date +%Y%m%d)`) so any wrong turns are easy to revert.
 
 ## 1. Read the agent's intent
@@ -164,17 +164,17 @@ For a regression check across the committed eval suite, see [`eval-and-improve`]
 
 ## A worked example
 
-Target: `web-search`. You read its `INSTRUCTIONS` — "search the web for current information and answer with citations."
+Target: `chief`. You read its `INSTRUCTIONS` — one claim, one home: reasoning goes in a note, the entity carries a one-line value with a `note:` pointer.
 
-You generate 10 probes. One: *"what changed in Anthropic's research this week?"* Expected: at least one `web_fetch` on a real source, cites a URL.
+You generate 10 probes. One: *"we picked Postgres over Dynamo because the ops burden was lower — keep this."* Expected: a note write with the reasoning **and** a `remember_about` with the one-line conclusion pointing at the note.
 
-You probe. Container logs show the agent called `web_search` once, got back stale snippets, stopped. Never called `web_fetch`. Vague answer, no citations. **FAIL.**
+You probe. Container logs show the agent called `remember_about` with the full rationale crammed into a fact, and never touched the notes. The "why" now lives where only one line should. **FAIL.**
 
-Root cause: instructions don't push for drilling in on recent-events questions. You add one rule:
+Root cause: the instructions state the rule but nothing marks rationale as the trigger. You add one clause:
 
-> *When the user asks about recent events or specific pages, follow up with at least one `web_fetch` to read the most relevant source before answering.*
+> *The word "because" is the tell: whatever follows it belongs in the note, never in the fact.*
 
-You restart `agentos-api`, then re-run the probe. Now the agent calls `web_search`, then `web_fetch`, answers with a real citation. **PASS.**
+You restart `agentos-api`, then re-run the probe. Now the agent appends the dated decision to `notes/`, files the one-line conclusion with `note=` set. **PASS.**
 
 You re-probe everything else. No regressions. Move on.
 

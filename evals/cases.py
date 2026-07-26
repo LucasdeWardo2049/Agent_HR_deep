@@ -14,13 +14,12 @@ Add a case below, tag it (`smoke`, `release`, `live`), then run:
 """
 
 import asyncio
-from os import getenv
 
 from agno.eval import Case, CaseResult
 
 from agents.agent_builder import agent_builder
+from agents.chief import chief, notes
 from agents.platform_manager import platform_manager
-from agents.web_search import web_search
 from db import get_postgres_db
 
 # Eval DB instance (where results are stored)
@@ -57,26 +56,56 @@ async def cleanup_new_components(pre_run_ids: set[str], result: CaseResult) -> N
     await asyncio.to_thread(delete_new_components, pre_run_ids)
 
 
-# When PARALLEL_API_KEY is set, the WebSearch agent uses the SDK
-# (parallel_search / parallel_extract); otherwise it uses MCP
-# (web_search / web_fetch). Pin the expected tool name to the active path.
-_WEB_SEARCH_TOOL = "parallel_search" if getenv("PARALLEL_API_KEY") else "web_search"
+def snapshot_brain_state() -> dict[str, set[str]]:
+    """`setup` hook for Chief cases: the learning rows (entities, profile fields,
+    memories) and note paths present before the case runs, so the teardown can
+    delete only what the case created."""
+    return {
+        "learning_ids": {str(row["learning_id"]) for row in eval_db.get_learnings(limit=1000)},
+        "note_paths": {meta.path for meta in notes.list()},
+    }
+
+
+def delete_new_brain_state(pre_run: dict[str, set[str]]) -> None:
+    """Hard-deletes learning rows and notes that did not exist before the case ran —
+    the shared brain must not accumulate eval fixtures, and a user's own entities
+    and notes are never touched."""
+    for row in eval_db.get_learnings(limit=1000):
+        if str(row["learning_id"]) not in pre_run["learning_ids"]:
+            eval_db.delete_learning(str(row["learning_id"]))
+    for meta in notes.list():
+        if meta.path not in pre_run["note_paths"]:
+            notes.delete(meta.path)
+
+
+async def cleanup_new_brain_state(pre_run: dict[str, set[str]], result: CaseResult) -> None:
+    """`teardown` hook for cases whose run may write to Chief's brain (capture is
+    ungated, so entities and notes really land in the DB). The runner invokes it
+    on pass, fail, error, and timeout alike, with the `setup` snapshot as context."""
+    if result.timed_out:
+        # Give an in-flight write a moment to commit so the sweep sees it.
+        await asyncio.sleep(10)
+    await asyncio.to_thread(delete_new_brain_state, pre_run)
 
 
 CASES: tuple[Case, ...] = (
-    # WebSearch — search tool fires AND response cites a URL.
+    # Chief — capture: the fact lands in the entity graph (reliability) and the
+    # reply confirms it briefly (judge). The snapshot-diff teardown removes
+    # whatever the case wrote to the shared brain.
     Case(
-        name="web_search_recent_anthropic_research",
-        agent=web_search,
-        input="What did Anthropic publish about agent research recently?",
-        tags=("live",),
-        timeout_seconds=120,
+        name="chief_captures_project_fact",
+        agent=chief,
+        input="Remember: Sarah Chen is leading the new radar project.",
+        tags=("smoke", "release"),
+        timeout_seconds=90,
+        setup=snapshot_brain_state,
+        teardown=cleanup_new_brain_state,
         criteria=(
-            "Answers the question by citing at least one real Anthropic URL "
-            "(anthropic.com domain). The response is grounded in fetched content "
-            "rather than refusing to answer."
+            "Briefly confirms it recorded that Sarah Chen leads the radar project. "
+            "Does not invent extra facts beyond the message, does not interrogate the "
+            "user, and does not claim it cannot remember things."
         ),
-        expected_tool_calls=(_WEB_SEARCH_TOOL,),
+        expected_tool_calls=("remember_about",),
     ),
     # Platform Manager — codebase lens fires AND response names the right agents.
     Case(
@@ -86,7 +115,7 @@ CASES: tuple[Case, ...] = (
         tags=("smoke", "release"),
         timeout_seconds=90,
         criteria=(
-            "Identifies `web-search`, `platform-manager`, and `agent-builder` as the registered agents. "
+            "Identifies `chief`, `platform-manager`, and `agent-builder` as the registered agents. "
             "May reference app/main.py."
         ),
         expected_tool_calls=("query_my_codebase",),
@@ -100,7 +129,7 @@ CASES: tuple[Case, ...] = (
         timeout_seconds=150,
         criteria=(
             "Answers from this repository's code (not generic AgentOS documentation): identifies the three "
-            "registered agents — WebSearch, Platform Manager, and Agent Builder (matching by display name, "
+            "registered agents — Chief, Platform Manager, and Agent Builder (matching by display name, "
             "agent id, or agent file path all count) — plus the `deployment-check` and `run-evals` workflows, "
             "and the scheduler setup (daily deployment-check cron on by default, scheduled evals opt-in)."
         ),
@@ -239,21 +268,22 @@ CASES: tuple[Case, ...] = (
         ),
     ),
     # --- Your cases — authored by /create-evals ---
-    # WebSearch — honesty under failed search: the search must FIRE (reliability) and the
-    # answer must admit nothing reliable was found (judge). Instructions rule 5: never
-    # substitute prior knowledge when search comes up empty.
+    # Chief — honesty on an empty brain: a recall probe for something never discussed
+    # must produce a grounded no (says what it holds and searched — the entity
+    # directory and its notes), never a fabricated status. Instructions: "a grounded no".
     Case(
-        name="web_search_admits_not_found",
-        agent=web_search,
-        input=("What did the Zephyrium Consortium announce last week about their quantum agent framework QALM-9?"),
+        name="chief_grounded_no_on_unknown",
+        agent=chief,
+        input="Where do we stand on the Zephyrium QALM-9 initiative?",
         tags=("release",),
-        timeout_seconds=120,
+        timeout_seconds=90,
+        setup=snapshot_brain_state,
+        teardown=cleanup_new_brain_state,
         criteria=(
-            "States plainly that it could not find reliable information about the 'Zephyrium "
-            "Consortium' or 'QALM-9' (or that they do not appear to exist), after actually "
-            "searching. Does not fabricate an announcement, details, dates, or sources, and "
-            "does not answer from prior knowledge with caveats."
+            "Says plainly that it has nothing recorded about 'Zephyrium' or 'QALM-9', grounded "
+            "in what it actually holds (references its entity directory, entity search, or notes "
+            "search coming up empty). Does not fabricate a status, dates, owners, or details, and "
+            "does not answer from general knowledge. Asking the user to fill it in is fine."
         ),
-        expected_tool_calls=(_WEB_SEARCH_TOOL,),
     ),
 )

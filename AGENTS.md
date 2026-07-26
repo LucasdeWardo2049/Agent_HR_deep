@@ -4,13 +4,13 @@ This file is the source of truth for any agent (Claude Code, Codex, others) work
 
 ## Project Overview
 
-**AgentOS: FastAPI for agents — one AI backend for every frontend.** AgentOS is an agent server built on [Agno](https://docs.agno.com) that turns your agents into a production API that attaches to any client: **REST API** for programmatic use, **chat interfaces** for humans (Slack is wired in; WhatsApp/Telegram/Discord mirror the same pattern), and **MCP** at `/mcp` for AI apps (claude.ai, ChatGPT, Cursor, Claude Code) — which work *through* the platform, not just on it. The repo itself is designed for coding agents to build and extend. It comes with eight coding agent skills that cover platform setup, the full agent development lifecycle, and the production deploy, plus two platform agents — Agent Builder (creates agents, teams, and workflows) and Platform Manager (understands, monitors, and explains the platform) — and WebSearch as the simplest sample agent to copy. Postgres (pgvector) handles persistence for sessions, memory, and knowledge. Runs locally via Docker; this template deploys to Railway with a single script and is the reference sibling of the `agentos-*` deployment family — see [Portable core vs. deploy layer](#portable-core-vs-deploy-layer).
+**AgentOS: FastAPI for agents — one AI backend for every frontend.** AgentOS is an agent server built on [Agno](https://docs.agno.com) that turns your agents into a production API that attaches to any client: **REST API** for programmatic use, **chat interfaces** for humans (Slack is wired in; WhatsApp/Telegram/Discord mirror the same pattern), and **MCP** at `/mcp` for AI apps (claude.ai, ChatGPT, Cursor, Claude Code) — which work *through* the platform, not just on it. The repo itself is designed for coding agents to build and extend. It comes with eight coding agent skills that cover platform setup, the full agent development lifecycle, and the production deploy, plus two platform agents — Agent Builder (creates agents, teams, and workflows) and Platform Manager (understands, monitors, and explains the platform) — and Chief, the platform's second brain: it remembers the people, projects, and decisions around your work, keeps living notes, and learns how each user works — from Slack, claude.ai, ChatGPT, or any MCP client. Postgres (pgvector) handles persistence for sessions, memory, and knowledge. Runs locally via Docker; this template deploys to Railway with a single script and is the reference sibling of the `agentos-*` deployment family — see [Portable core vs. deploy layer](#portable-core-vs-deploy-layer).
 
 ## Architecture
 
 ```
 AgentOS  (app/main.py)
-├── WebSearch    (agents/web_search.py)   — Parallel SDK or keyless MCPTools
+├── Chief        (agents/chief.py)        — second brain: LearningMachine + FileSystem notes
 ├── Platform Manager (agents/platform_manager.py) — WorkspaceContextProvider + read-only runtime tools
 ├── Agent Builder (agents/agent_builder.py) — Agno docs MCP + StudioTools
 ├── DeployCheck  (workflows/deployment_check.py) — deterministic readiness workflow
@@ -20,7 +20,7 @@ AgentOS  (app/main.py)
 Shared:
 - PostgreSQL + pgvector for sessions, memory, knowledge.
 - `app.settings.default_model()` returns `OpenAIResponses(id="gpt-5.6-sol")` — bump the model in one place.
-- `app.registry.registry` exposes the safe Studio registry Agent Builder can use: Agno docs MCP, web search, reasoning tools, utility functions, the default model, the shared DB, and the reference agents (web-search, platform-manager).
+- `app.registry.registry` exposes the safe Studio registry Agent Builder can use: Agno docs MCP, web search, reasoning tools, utility functions, the default model, the shared DB, and the reference agents (chief, platform-manager).
 - Scheduler enabled by default (`scheduler=True`); `app/schedules.py` registers schedules from the lifespan. Deployment check runs daily **on** by default — set `ENABLE_DEPLOY_CHECK=False` to disable it. The run-evals schedule is always registered but ships **disabled** (it uses model calls) — flip it on from the AgentOS UI when you want scheduled eval runs; the toggle survives reboots.
 - Slack interface lights up automatically when both `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` are set.
 - MCP server on by default (`mcp_server=True`) at `/mcp` — see [MCP interface](#mcp-interface).
@@ -35,7 +35,7 @@ Shared:
 | [`app/settings.py`](app/settings.py) | `default_model()` factory. |
 | [`app/registry.py`](app/registry.py) | Safe Studio registry used by Agent Builder — docs MCP, web tools, utility functions, reference agents. |
 | [`app/config.yaml`](app/config.yaml) | UI manifest per component (keyed by `id`): description + quick prompts. |
-| [`agents/web_search.py`](agents/web_search.py) | Reference agent — direct tools (Parallel SDK or MCP). |
+| [`agents/chief.py`](agents/chief.py) | The second brain — LearningMachine (profile, memory, entities in agentic mode) + FileSystem notes; the Slack default agent. |
 | [`agents/platform_manager.py`](agents/platform_manager.py) | Flagship agent — codebase context provider + read-only runtime tools (eval history, deployment-check reports + on-demand diagnostic run, schedules, components). |
 | [`agents/agent_builder.py`](agents/agent_builder.py) | Reference agent — creates, edits, and publishes agents, teams, and workflows through StudioTools immediately; only deletes keep a HITL confirmation gate. |
 | [`workflows/deployment_check.py`](workflows/deployment_check.py) | Reference workflow — a deterministic `Step` that checks DB, auth, scheduler URL, MCP reachability, Slack config, schedule state, and component imports; imported into `app/main.py` and passed to `AgentOS(workflows=[...])`. |
@@ -119,7 +119,7 @@ my_agent = Agent(
 
 Three patterns to copy from:
 
-- **Direct tools** — see [`agents/web_search.py`](agents/web_search.py). The agent sees each tool individually. Best when the user knows which tools the agent needs.
+- **Second brain** — see [`agents/chief.py`](agents/chief.py). Direct tools (the notes toolkit — the agent sees each tool individually) plus `learning=`: the LearningMachine attaches its stores' tools, guidance, and recall automatically. Best when the agent should accumulate durable state across sessions. For a plain direct-tools agent, use the same shape without `learning=`.
 - **Context provider** — see [`agents/platform_manager.py`](agents/platform_manager.py). The agent sees one `query_<thing>` tool that hands off to a sub-agent. Best for one-source agents and when collapsing many tools into one keeps the model focused. Platform Manager also shows combining a provider with direct read-only tools — two lenses on one domain.
 - **Studio builder** — see [`agents/agent_builder.py`](agents/agent_builder.py). The agent sees StudioTools, a safe `Registry`, Agno docs MCP, and delete-only confirmation gates: create/edit/publish execute immediately (every mutation lands in the DB as a versioned component — inspectable and reversible), while deletes pause for human approval. Best when the user should create or refine components from the AgentOS UI, Slack, or an MCP frontend.
 
@@ -155,7 +155,7 @@ Use `/extend-agent` to *change* the agent; use `/improve-agent` to *harden* it a
 
 ## Evals
 
-The eval suite lives in [`evals/`](evals/) and runs on agno's eval suite runner (`agno.eval`): the template declares `Case`s, agno runs them. Each case wraps agno's [`AgentAsJudgeEval`](https://docs.agno.com/evals/agent-as-judge) (LLM judge against a rubric, binary pass/fail) and/or [`ReliabilityEval`](https://docs.agno.com/evals/reliability) (tool-call assertion). Any case whose agent can reach the ungated create/edit/publish Studio tools (anything probing `agent-builder`) must set the snapshot-diff hooks from `evals/cases.py` (`setup=snapshot_component_ids, teardown=cleanup_new_components`) — setup records the Studio component ids before the case and teardown hard-deletes any new ones afterwards, even on timeout. Cases carry tags:
+The eval suite lives in [`evals/`](evals/) and runs on agno's eval suite runner (`agno.eval`): the template declares `Case`s, agno runs them. Each case wraps agno's [`AgentAsJudgeEval`](https://docs.agno.com/evals/agent-as-judge) (LLM judge against a rubric, binary pass/fail) and/or [`ReliabilityEval`](https://docs.agno.com/evals/reliability) (tool-call assertion). Any case whose agent can reach the ungated create/edit/publish Studio tools (anything probing `agent-builder`) must set the snapshot-diff hooks from `evals/cases.py` (`setup=snapshot_component_ids, teardown=cleanup_new_components`) — setup records the Studio component ids before the case and teardown hard-deletes any new ones afterwards, even on timeout. Likewise, any case probing `chief` must set the brain hooks (`setup=snapshot_brain_state, teardown=cleanup_new_brain_state`) — capture is ungated, so entities, memories, and notes really land in the shared brain, and the teardown removes only what the case created. Cases carry tags:
 
 - `smoke` — fast checks that prove the template's self-driving surfaces still work.
 - `release` — broader checks for pre-release confidence.
@@ -201,7 +201,7 @@ Invoke a skill by name (`/extend-agent`) or just describe the task — Claude Co
 | `EVALS_TAG` | no | `smoke` | Eval tag run by the run-evals workflow. |
 | `EVALS_CASE_TIMEOUT_SECONDS` | no | `90` | Default per-case timeout for run-evals runs; applies only to cases that don't set their own `timeout_seconds`. |
 | `EVALS_SUITE_TIMEOUT_SECONDS` | no | `900` | Whole-suite timeout for run-evals runs; per-case timeouts are the granular limit. The default bounds the `smoke` tag's worst case (incl. builder-case teardown). |
-| `PARALLEL_API_KEY` | no | — | Authenticates the WebSearch Agent's Parallel SDK / MCP connection (raises rate ceiling). |
+| `PARALLEL_API_KEY` | no | — | Authenticates the Studio registry's web search tools (Parallel SDK when set; keyless MCP fallback with a lower rate ceiling). |
 | `SLACK_BOT_TOKEN` | no | — | Bot token. Set with signing secret to enable the Slack interface. |
 | `SLACK_SIGNING_SECRET` | no | — | Signing secret. Both it and the bot token must be set for the interface to load. |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASS` / `DB_DATABASE` | no | matches compose | Postgres connection. |
@@ -226,6 +226,16 @@ To add your own: define a `Workflow` in `workflows/`, import it into [`app/main.
 
 See [agno scheduler docs](https://docs.agno.com/agent-os/scheduler) for the cron API.
 
+## Chief
+
+Chief ([`agents/chief.py`](agents/chief.py)) is the platform's second brain, built on agno's LearningMachine and FileSystem. Three surfaces split the work: **notes** hold content (decisions with their reasoning, running documents — anything longer than a line), **entities** index the world (people, projects, systems: one-line current values, links, and a `note:` pointer to where the detail lives), and **profile/memory** hold the self (who each user is, how they like to work). The one-claim-one-home rule in its `INSTRUCTIONS` keeps those surfaces from duplicating each other.
+
+**The world is shared, the self is private.** Notes (`FileSystem` namespace `brain` — files land in Postgres under the `fs` schema) and entities (namespace `global`) are one brain for everyone on the platform; user profile and user memory are per-user (agentic mode, so their tools only exist when a run carries a user id). Corrections supersede rather than accumulate — stating a new fact retires the contradicted one (a judged model call in the write path), and facts render with as-of dates.
+
+**Identity decides whose brain it is.** A run's identity always wins: Slack runs as the sender, production runs as the JWT `sub`, PATs as `sa:<name>`. `Agent(user_id="owner")` is only the fallback for anonymous local runs (dev `/mcp`, evals) — without it they would silently lose the profile/memory tools. One caveat to know: the built-in MCP OAuth identifies the *connector registration*, not the person — claude.ai and ChatGPT connect as different `__oauth__:<client_id>` principals, so the same human gets separate private stores per app (shared notes and entities are unaffected). A JWT deployment is what gives one human one brain across channels.
+
+Two implementation notes: `enable_agentic_memory` stays **off** on Chief — it would register the legacy MemoryManager's `update_user_memory` tool, shadowing the learning store's tool of the same name. And eval cases that probe Chief must set the brain snapshot hooks (see [Evals](#evals)) so eval fixtures never persist in the shared brain.
+
 ## Platform Manager
 
 The platform's ops surface is the Platform Manager agent ([`agents/platform_manager.py`](agents/platform_manager.py)) — read-only by design. It combines the codebase context provider (how the platform is wired) with runtime tools over Postgres (eval history, deployment-check reports — plus running the deployment check on demand when no report exists or the latest is stale — schedules, runtime-built components), diagnoses issues across both lenses, and hands off fixes: code changes go to coding agents via the skills in [`.agents/skills/`](.agents/skills/), component changes go to Agent Builder.
@@ -245,7 +255,7 @@ Local smoke check: `./scripts/mcp_check.sh` — handshake, tool count, and one q
 
 ## Slack
 
-Set `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` and restart. The default wiring in `app/main.py` routes Slack messages to `agent_builder` so users can request new components from chat. Change the `agent=` arg to point at another agent. See the [agno Slack interface docs](https://docs.agno.com/agent-os/interfaces/overview) for the Slack-side app setup.
+Set `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` and restart. The default wiring in `app/main.py` routes Slack messages to `chief`, so the team's second brain lives where the team already talks — each sender keeps their private profile and memory (sessions are channel-scoped, identity is per-sender) while notes and entities are shared. Change the `agent=` arg to point at another agent. See the [agno Slack interface docs](https://docs.agno.com/agent-os/interfaces/overview) for the Slack-side app setup.
 
 For Discord, Telegram, WhatsApp, and custom UIs, mirror the Slack conditional pattern with the relevant agno interface — see [agno interfaces overview](https://docs.agno.com/agent-os/interfaces/overview).
 

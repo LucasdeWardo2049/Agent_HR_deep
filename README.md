@@ -28,7 +28,8 @@ Your coding agent drives the whole flow: it checks Docker, sets up `.env`, boots
 
 This codebase comes with:
 
-- **Two platform agents** that help you build and run the platform from your favorite AI apps like Claude and ChatGPT. **Agent Builder** creates agents, teams, and workflows using the AgentOS Studio. **Platform Manager** monitors and manages the platform: codebase questions, eval history, deployment checks, schedules.
+- **Chief, your team's second brain.** It remembers the people, projects, and decisions around your work, keeps living notes, and learns how you work — and because every frontend talks to the same brain, what you tell it in Slack is there when you ask from claude.ai or ChatGPT.
+- **Two platform agents** that help you build and run the platform from your favorite AI apps like Claude and ChatGPT. **Agent Builder** creates agents, teams, and workflows using the AgentOS Studio. **Platform Manager** understands, monitors, and explains the platform: codebase questions, eval history, deployment checks, schedules.
 - **Coding-agent skills** let Claude Code, Codex, Cursor, and other coding agents build, test, and improve the platform automatically — see [Using the platform](#using-the-platform).
 
 Trace data, agent code, evals, and system logs are all available to coding agents, so the platform can inspect and improve itself end to end.
@@ -67,6 +68,10 @@ Confirm your AgentOS is running at [http://localhost:8000/docs](http://localhost
 ### Step 4: Check platform health
 
 Click **Chat** under **Platform Manager** and ask: "How healthy is the platform?" It answers from the codebase and runtime data — eval history, deployment checks, schedules, and the component you just built.
+
+### Step 5: Meet Chief
+
+Click **Chat** under **Chief** and tell it what you're working on: "Remember: I'm building a support bot, and Priya reviews my launches." It files the who and what as entities, the why as notes, and what it learns about you stays yours. Every frontend — this UI, Slack, claude.ai, ChatGPT — talks to the same brain.
 
 ## Run in production
 
@@ -168,7 +173,7 @@ To re-sync environment variables, run the following command:
 ./scripts/railway/down.sh
 ```
 
-Deletes the Railway project: the agent-os service, the pgvector database, and its volume, **including all data**. It also removes the AGENTOS_URL from your env file so a future `up.sh` starts clean.
+Deletes the Railway project: the agent-os service, the pgvector database, and its volume, **including all data**. It also comments out a Railway-generated `AGENTOS_URL` in your env file so a future `up.sh` derives it again. Custom domains are preserved.
 
 ### Opting out of JWT (not recommended)
 
@@ -247,7 +252,7 @@ can you access my agentos mcp?
 | `EVALS_TAG` | no | `smoke` | Eval tag run by the run-evals workflow. |
 | `EVALS_CASE_TIMEOUT_SECONDS` | no | `90` | Default per-case timeout for run-evals runs; applies only to cases that don't set their own `timeout_seconds`. |
 | `EVALS_SUITE_TIMEOUT_SECONDS` | no | `900` | Whole-suite timeout for run-evals runs; per-case timeouts are the granular limit. The default bounds the `smoke` tag's worst case (incl. builder-case teardown). |
-| `PARALLEL_API_KEY` | no | none | Authenticates the WebSearch Agent's Parallel SDK / MCP connection. |
+| `PARALLEL_API_KEY` | no | none | Authenticates the Studio registry's web search tools (Parallel SDK when set; keyless MCP fallback). |
 | `SLACK_BOT_TOKEN` / `SLACK_SIGNING_SECRET` | no | none | Both must be set to enable the Slack interface. |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASS` / `DB_DATABASE` | no | matches compose | Postgres connection. |
 | `DB_DRIVER` | no | `postgresql+psycopg` | SQLAlchemy driver. |
