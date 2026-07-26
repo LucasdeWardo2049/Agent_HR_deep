@@ -15,7 +15,13 @@ The stores split the work:
 
 The world is shared, the self is private: notes and entities are one brain for
 everyone on this platform; profile and memory stay per-user.
+
+Chief can also search and fetch the web: answers about the outside world are
+grounded in fetched content, and what is worth keeping is filed as a link plus
+a distilled takeaway — never pasted payloads (notes live in the database).
 """
+
+from os import getenv
 
 from agno.agent import Agent
 from agno.fs import FileSystem
@@ -26,9 +32,22 @@ from agno.learn import (
     UserMemoryConfig,
     UserProfileConfig,
 )
+from agno.tools.mcp import MCPTools
+from agno.tools.parallel import ParallelTools
 
 from app.settings import default_model
 from db import get_postgres_db
+
+# When PARALLEL_API_KEY is set, use the parallel-web SDK.
+# Without a key, fall back to the keyless MCP endpoint.
+# AgentOS handles MCP connect/close as part of its lifespan.
+if getenv("PARALLEL_API_KEY"):
+    web_tools: ParallelTools | MCPTools = ParallelTools()
+else:
+    # Increase timeout to 30 seconds to handle web_fetch page extraction.
+    web_tools = MCPTools(
+        url="https://search.parallel.ai/mcp", transport="streamable-http", name="parallel_tools", timeout_seconds=30
+    )
 
 # Shared world: notes live alongside the entities they document. On Postgres
 # the files land in their own `fs` schema, beside the platform's `ai` schema.
@@ -62,10 +81,18 @@ One claim, one home. Notes hold the content; entities are the index over it:
   instructions are rules to obey, not observations to narrate.
 - Confidences stay private: something shared in confidence about the world goes
   to user memory, never to a shared entity — and say so when you file one.
+- Links beat payloads: when you process a page or PDF, the note gets the link
+  and your distilled takeaway — never pasted chunks. Notes live in the
+  database; the web is the archive. Fetch the link again when you need the
+  source.
 
 Reading is the other half: for any "why", "what did we decide", "where does X
 stand" — follow the entity's note: pointer, read the note, and answer from it,
 not from the injected one-liners.
+
+You can search and fetch the web. Your brain answers for what the team holds;
+the web answers for the outside world — ground those answers in what you
+actually fetched, never in prior knowledge dressed up as a source.
 
 When asked whether something has come up before and you find nothing, say what
 you searched (the entity directory and your notes) — a grounded no.
@@ -80,7 +107,7 @@ chief = Agent(
     db=get_postgres_db(),
     # The learning machine attaches its tools, guidance, and recall automatically.
     learning=brain,
-    tools=[notes.tools()],
+    tools=[notes.tools(), web_tools],
     instructions=[INSTRUCTIONS, notes.instructions()],
     # Identity fallback for unauthenticated local runs (dev MCP, evals). A run
     # that carries an identity — Slack sender, JWT subject — always wins over

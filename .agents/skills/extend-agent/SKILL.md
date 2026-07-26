@@ -167,11 +167,11 @@ Target: `chief`. The user wants Chief to also be able to read pages and PDFs fro
 
 **Step 2** — user picks "Add a tool."
 
-**Step 3** — search the agno-docs MCP for "PDF" and "fetch." Find `agno.tools.jina` (Jina Reader turns any URL, PDF, or HTML into clean markdown) — capture import, env var (`JINA_API_KEY`, optional — it works keyless, a key just raises the rate ceiling), pip dep (`jina`).
+**Step 3** — search the agno-docs MCP for "PDF" and "fetch." Find that Chief's existing Parallel web tools already cover fetching HTML pages, but PDF parsing isn't included. Find `agno.tools.jina` (Jina Reader turns any URL, PDF, or HTML into clean markdown) — capture import, env var (`JINA_API_KEY`, optional — it works keyless, a key just raises the rate ceiling), pip dep (`jina`).
 
 **Step 4** — propose: *"Add `JinaReaderTools` so `chief` can fetch and parse the links you hand it before filing them. Needs `jina` in `pyproject.toml`; works keyless, set `JINA_API_KEY` for higher limits. Add a quick prompt that exercises a PDF URL."* User says yes.
 
-Edit `agents/chief.py` to import `JinaReaderTools` and add it to `tools=[notes.tools(), JinaReaderTools()]`. Add `jina` to `pyproject.toml` (and optionally `JINA_API_KEY=` to [`example.env`](../../../example.env)). Add a quick prompt to the agent's manifest entry in `app/config.yaml`:
+Edit `agents/chief.py` to import `JinaReaderTools` and add it to `tools=[notes.tools(), web_tools, JinaReaderTools()]`. Add `jina` to `pyproject.toml` (and optionally `JINA_API_KEY=` to [`example.env`](../../../example.env)). Add a quick prompt to the agent's manifest entry in `app/config.yaml`:
 
 ```yaml
 manifest:

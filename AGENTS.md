@@ -10,7 +10,7 @@ This file is the source of truth for any agent (Claude Code, Codex, others) work
 
 ```
 AgentOS  (app/main.py)
-├── Chief        (agents/chief.py)        — second brain: LearningMachine + FileSystem notes
+├── Chief        (agents/chief.py)        — second brain: LearningMachine + notes + web tools
 ├── Platform Manager (agents/platform_manager.py) — WorkspaceContextProvider + read-only runtime tools
 ├── Agent Builder (agents/agent_builder.py) — Agno docs MCP + StudioTools
 ├── DeployCheck  (workflows/deployment_check.py) — deterministic readiness workflow
@@ -35,7 +35,7 @@ Shared:
 | [`app/settings.py`](app/settings.py) | `default_model()` factory. |
 | [`app/registry.py`](app/registry.py) | Safe Studio registry used by Agent Builder — docs MCP, web tools, utility functions, reference agents. |
 | [`app/config.yaml`](app/config.yaml) | UI manifest per component (keyed by `id`): description + quick prompts. |
-| [`agents/chief.py`](agents/chief.py) | The second brain — LearningMachine (profile, memory, entities in agentic mode) + FileSystem notes; the Slack default agent. |
+| [`agents/chief.py`](agents/chief.py) | The second brain — LearningMachine (profile, memory, entities in agentic mode) + FileSystem notes + web tools (Parallel SDK or keyless MCP); the Slack default agent. |
 | [`agents/platform_manager.py`](agents/platform_manager.py) | Flagship agent — codebase context provider + read-only runtime tools (eval history, deployment-check reports + on-demand diagnostic run, schedules, components). |
 | [`agents/agent_builder.py`](agents/agent_builder.py) | Reference agent — creates, edits, and publishes agents, teams, and workflows through StudioTools immediately; only deletes keep a HITL confirmation gate. |
 | [`workflows/deployment_check.py`](workflows/deployment_check.py) | Reference workflow — a deterministic `Step` that checks DB, auth, scheduler URL, MCP reachability, Slack config, schedule state, and component imports; imported into `app/main.py` and passed to `AgentOS(workflows=[...])`. |
@@ -201,7 +201,7 @@ Invoke a skill by name (`/extend-agent`) or just describe the task — Claude Co
 | `EVALS_TAG` | no | `smoke` | Eval tag run by the run-evals workflow. |
 | `EVALS_CASE_TIMEOUT_SECONDS` | no | `90` | Default per-case timeout for run-evals runs; applies only to cases that don't set their own `timeout_seconds`. |
 | `EVALS_SUITE_TIMEOUT_SECONDS` | no | `900` | Whole-suite timeout for run-evals runs; per-case timeouts are the granular limit. The default bounds the `smoke` tag's worst case (incl. builder-case teardown). |
-| `PARALLEL_API_KEY` | no | — | Authenticates the Studio registry's web search tools (Parallel SDK when set; keyless MCP fallback with a lower rate ceiling). |
+| `PARALLEL_API_KEY` | no | — | Authenticates Chief's and the Studio registry's web search tools (Parallel SDK when set; keyless MCP fallback with a lower rate ceiling). |
 | `SLACK_BOT_TOKEN` | no | — | Bot token. Set with signing secret to enable the Slack interface. |
 | `SLACK_SIGNING_SECRET` | no | — | Signing secret. Both it and the bot token must be set for the interface to load. |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASS` / `DB_DATABASE` | no | matches compose | Postgres connection. |
@@ -228,7 +228,7 @@ See [agno scheduler docs](https://docs.agno.com/agent-os/scheduler) for the cron
 
 ## Chief
 
-Chief ([`agents/chief.py`](agents/chief.py)) is the platform's second brain, built on agno's LearningMachine and FileSystem. Three surfaces split the work: **notes** hold content (decisions with their reasoning, running documents — anything longer than a line), **entities** index the world (people, projects, systems: one-line current values, links, and a `note:` pointer to where the detail lives), and **profile/memory** hold the self (who each user is, how they like to work). The one-claim-one-home rule in its `INSTRUCTIONS` keeps those surfaces from duplicating each other.
+Chief ([`agents/chief.py`](agents/chief.py)) is the platform's second brain, built on agno's LearningMachine and FileSystem. Three surfaces split the work: **notes** hold content (decisions with their reasoning, running documents — anything longer than a line), **entities** index the world (people, projects, systems: one-line current values, links, and a `note:` pointer to where the detail lives), and **profile/memory** hold the self (who each user is, how they like to work). The one-claim-one-home rule in its `INSTRUCTIONS` keeps those surfaces from duplicating each other. Chief also carries **web tools** (Parallel SDK when `PARALLEL_API_KEY` is set, keyless MCP otherwise): outside-world questions get searched and grounded, and processed pages are filed as **links plus a distilled takeaway — never pasted payloads**, because notes live in the database (1MB/file, 20MB/namespace caps) and the web can always be fetched again.
 
 **The world is shared, the self is private.** Notes (`FileSystem` namespace `brain` — files land in Postgres under the `fs` schema) and entities (namespace `global`) are one brain for everyone on the platform; user profile and user memory are per-user (agentic mode, so their tools only exist when a run carries a user id). Corrections supersede rather than accumulate — stating a new fact retires the contradicted one (a judged model call in the write path), and facts render with as-of dates.
 

@@ -17,10 +17,11 @@ manifest:
       - "Teach me how to use this AgentOS"
 
   chief:
-    description: "Your team's second brain — remembers people, projects, and decisions, keeps living notes, and learns how you work."
+    description: "Your team's second brain — remembers people, projects, and decisions, keeps living notes, learns how you work, and searches the web."
     quick_prompts:
       - "Remember: Sarah is leading the new radar project"
       - "Who's working on what?"
+      - "What's the latest from Agno? File anything worth keeping"
       - "I prefer short, direct answers — remember that"
 
   # --- Workflows ---

@@ -13,7 +13,7 @@ You're running the platform's eval suite, diagnosing every failure, fixing what'
 
 - Postgres reachable on 5432: `nc -z localhost 5432` returns 0. If not, `docker compose up -d agentos-db` from the source repo. (`docker compose ps` is unreliable from worktrees or alternate clones.)
 - Venv active: `source .venv/bin/activate`. If `.venv` doesn't exist (fresh checkout or worktree), run `./scripts/venv_setup.sh` first. `evals/cases.py` imports the agents directly from `agents/`, so no AgentOS server has to be running.
-- `.env` populated with `OPENAI_API_KEY`. `evals/__main__.py` loads `.env` at startup (via `python-dotenv`), so you do not need to source `.env` first. Worktrees don't inherit `.env` (it's gitignored) — copy it from the source repo if missing.
+- `.env` populated with `OPENAI_API_KEY` (and `PARALLEL_API_KEY` if you have one — the runner pins Chief's expected web tool name based on it). `evals/__main__.py` loads `.env` at startup (via `python-dotenv`), so you do not need to source `.env` first. Worktrees don't inherit `.env` (it's gitignored) — copy it from the source repo if missing.
 
 ## 1. Run the suite
 
@@ -42,6 +42,7 @@ For every failed case, decide which kind of failure it is and fix at the appropr
 | Judge fails, response is fabricated | Agent hallucinated when it should have said it didn't know | Add a "if you can't find a real source, say so plainly" rule to the agent's instructions |
 | Reliability fails: "missing tool X" | Agent didn't call the expected tool on this prompt | (a) Strengthen the routing rule in instructions, OR (b) the case is too narrow — broaden `expected_tool_calls` or drop the assertion |
 | Reliability fails: "additional tool Y called" with `allow_additional_tool_calls=False` | Agent fanned out beyond the case's expectation | Tighten the agent's instructions OR set `allow_additional_tool_calls=True` |
+| Reliability fails on Chief's web tool name (`parallel_search` ↔ `web_search`) | `PARALLEL_API_KEY` mismatch between `.env` and your shell — `evals/cases.py` pins `_WEB_TOOL` at import time | Sync the var in both places, then re-run |
 | Same case flips PASS/FAIL across consecutive runs with no code change | Judge variance — rubric is too loose | Re-run 2-3 times to confirm; if it keeps flipping, tighten the case's `criteria` (more specific, more falsifiable) |
 | Single case fails on full suite but passes alone | Transient flake or upstream rate limit (429s, MCP shutdown traceback) | Re-run the case in isolation. If it passes, re-run the full suite. If 429s persist, back off — don't fix the agent. |
 | Many cases fail at once | Broad regression — model swap, MCP server down, tool removed | Diagnose the root cause first; do NOT paper over with prompt edits |
@@ -147,3 +148,5 @@ class Case:
 The runner calls `agent.arun()` once per case and feeds the response into both checks, so cases that set both fields cost one agent run, not two.
 
 Set `setup=snapshot_component_ids, teardown=cleanup_new_components` (both in [`evals/cases.py`](../../../evals/cases.py)) on every case whose agent can reach the ungated create/edit/publish Studio tools (all agent-builder cases do this): setup snapshots Studio component ids before the case and teardown hard-deletes only the new ones after, so eval runs never leave components behind and never touch pre-existing ones. The same pattern covers Chief: `setup=snapshot_brain_state, teardown=cleanup_new_brain_state` on every case that probes `chief`, so entities, memories, and notes written during a case never persist in the shared brain.
+
+`evals/cases.py` also conditions Chief's expected web tool name on `PARALLEL_API_KEY` (Parallel SDK if the key is set, keyless MCP otherwise). If your shell has the var set but `.env` doesn't (or vice versa), the assertion checks the wrong tool — sync them before debugging.

@@ -14,6 +14,7 @@ Add a case below, tag it (`smoke`, `release`, `live`), then run:
 """
 
 import asyncio
+from os import getenv
 
 from agno.eval import Case, CaseResult
 
@@ -88,6 +89,12 @@ async def cleanup_new_brain_state(pre_run: dict[str, set[str]], result: CaseResu
     await asyncio.to_thread(delete_new_brain_state, pre_run)
 
 
+# When PARALLEL_API_KEY is set, Chief's web tools come from the Parallel SDK
+# (parallel_search / parallel_extract); otherwise from the keyless MCP endpoint
+# (web_search / web_fetch). Pin the expected tool name to the active path.
+_WEB_TOOL = "parallel_search" if getenv("PARALLEL_API_KEY") else "web_search"
+
+
 CASES: tuple[Case, ...] = (
     # Chief — capture: the fact lands in the entity graph (reliability) and the
     # reply confirms it briefly (judge). The snapshot-diff teardown removes
@@ -106,6 +113,23 @@ CASES: tuple[Case, ...] = (
             "user, and does not claim it cannot remember things."
         ),
         expected_tool_calls=("remember_about",),
+    ),
+    # Chief — live web: outside-world questions get searched and grounded, never
+    # answered from prior knowledge. Live because correctness depends on today's web.
+    Case(
+        name="chief_answers_from_live_web",
+        agent=chief,
+        input="What did Anthropic publish about agent research recently? Just tell me — no need to file it.",
+        tags=("live",),
+        timeout_seconds=120,
+        setup=snapshot_brain_state,
+        teardown=cleanup_new_brain_state,
+        criteria=(
+            "Answers the question by citing at least one real Anthropic URL "
+            "(anthropic.com domain). The response is grounded in fetched content "
+            "rather than refusing to answer."
+        ),
+        expected_tool_calls=(_WEB_TOOL,),
     ),
     # Platform Manager — codebase lens fires AND response names the right agents.
     Case(
