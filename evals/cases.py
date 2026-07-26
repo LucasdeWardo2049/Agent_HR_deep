@@ -57,34 +57,17 @@ async def cleanup_new_components(pre_run_ids: set[str], result: CaseResult) -> N
     await asyncio.to_thread(delete_new_components, pre_run_ids)
 
 
-def snapshot_brain_state() -> dict[str, set[str]]:
-    """`setup` hook for Chief cases: the learning rows (entities, profile fields,
-    memories) and note paths present before the case runs, so the teardown can
-    delete only what the case created.
-
-    The diff is on identity, not content, and that bounds what it can undo.
-    Learning ids are deterministic (`entity_<namespace>_<type>_<id>`,
-    `user_profile_<user_id>`, `memories_<user_id>`), and an entity's facts,
-    events and relationships all live inside one row — so a case that *merges*
-    into a row or a note that already existed is invisible here and survives the
-    teardown. That is why every fixture below uses names no real team would have
-    on file: keep a case's writes on rows it created, and the diff can undo them.
-    """
+def snapshot_chief_state() -> dict[str, set[str]]:
+    """`setup` hook for Chief cases: the note paths present before the case runs, so the teardown can
+    delete only what the case created."""
     return {
         "learning_ids": {str(row["learning_id"]) for row in eval_db.get_learnings(limit=1000)},
         "note_paths": {meta.path for meta in notes.list()},
     }
 
 
-def delete_new_brain_state(pre_run: dict[str, set[str]]) -> None:
-    """Hard-deletes learning rows and notes that did not exist before the case ran.
-
-    A pre-existing row is never deleted, so a user's own entities and notes
-    survive. What this cannot undo is an edit *inside* one: a fact superseded on
-    an entity that already existed, a relationship replaced, a line rewritten in
-    an existing note. Distinctive fixture names are what keep cases out of that
-    path — see `snapshot_brain_state`.
-    """
+def delete_new_chief_state(pre_run: dict[str, set[str]]) -> None:
+    """Hard-deletes notes that did not exist before the case ran."""
     for row in eval_db.get_learnings(limit=1000):
         if str(row["learning_id"]) not in pre_run["learning_ids"]:
             eval_db.delete_learning(str(row["learning_id"]))
@@ -93,14 +76,14 @@ def delete_new_brain_state(pre_run: dict[str, set[str]]) -> None:
             notes.delete(meta.path)
 
 
-async def cleanup_new_brain_state(pre_run: dict[str, set[str]], result: CaseResult) -> None:
-    """`teardown` hook for cases whose run may write to Chief's stores (capture is
-    ungated, so entities and notes really land in the DB). The runner invokes it
+async def cleanup_new_chief_state(pre_run: dict[str, set[str]], result: CaseResult) -> None:
+    """`teardown` hook for cases whose run may write to Chief's stores (notes are
+    ungated, so notes really land in the DB). The runner invokes it
     on pass, fail, error, and timeout alike, with the `setup` snapshot as context."""
     if result.timed_out:
         # Give an in-flight write a moment to commit so the sweep sees it.
         await asyncio.sleep(10)
-    await asyncio.to_thread(delete_new_brain_state, pre_run)
+    await asyncio.to_thread(delete_new_chief_state, pre_run)
 
 
 # When PARALLEL_API_KEY is set, Chief's web tools come from the Parallel SDK
@@ -113,21 +96,14 @@ CASES: tuple[Case, ...] = (
     # Chief — capture: the fact lands in the entity graph (reliability) and the
     # reply confirms it briefly (judge). The snapshot-diff teardown removes
     # whatever the case wrote to the shared stores.
-    #
-    # The names are deliberately unreal. An earlier version of this case said
-    # "Sarah Chen is leading the new radar project" — a paraphrase of Chief's own
-    # quick prompt in app/config.yaml — so on any platform where a user had clicked
-    # that prompt, the case merged into their real `radar` entity and note:
-    # superseding their fact, replacing their relationship, rewriting their note
-    # lines. None of it revertible, because the rows pre-existed the snapshot.
     Case(
         name="chief_captures_project_fact",
         agent=chief,
         input="Remember: Wilhelmina Ashgrove-Petrov is leading the Quillhawk-Meridian rollout.",
         tags=("smoke", "release"),
         timeout_seconds=90,
-        setup=snapshot_brain_state,
-        teardown=cleanup_new_brain_state,
+        setup=snapshot_chief_state,
+        teardown=cleanup_new_chief_state,
         criteria=(
             "Briefly confirms it recorded that Wilhelmina Ashgrove-Petrov leads the "
             "Quillhawk-Meridian rollout. Does not invent extra facts beyond the message, "
@@ -143,8 +119,8 @@ CASES: tuple[Case, ...] = (
         input="What did Anthropic publish about agent research recently? Just tell me — no need to file it.",
         tags=("live",),
         timeout_seconds=120,
-        setup=snapshot_brain_state,
-        teardown=cleanup_new_brain_state,
+        setup=snapshot_chief_state,
+        teardown=cleanup_new_chief_state,
         criteria=(
             "Answers the question by citing at least one real Anthropic URL "
             "(anthropic.com domain). The response is grounded in fetched content "
@@ -322,8 +298,8 @@ CASES: tuple[Case, ...] = (
         input="Where do we stand on the Zephyrium QALM-9 initiative?",
         tags=("release",),
         timeout_seconds=90,
-        setup=snapshot_brain_state,
-        teardown=cleanup_new_brain_state,
+        setup=snapshot_chief_state,
+        teardown=cleanup_new_chief_state,
         criteria=(
             "Says plainly that it has nothing recorded about 'Zephyrium' or 'QALM-9', grounded "
             "in what it actually holds (references its entity directory, entity search, or notes "

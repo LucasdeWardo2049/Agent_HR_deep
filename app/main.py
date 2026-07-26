@@ -28,8 +28,7 @@ agentos_url = getenv("AGENTOS_URL", "http://127.0.0.1:8000")
 
 # ---------------------------------------------------------------------------
 # Interfaces
-# - The Chief agent becomes available on Slack when both env vars are set:
-#   the team mascot, sharing notes and entities with every frontend.
+# - Chief becomes available on Slack when both env vars are set
 # ---------------------------------------------------------------------------
 SLACK_BOT_TOKEN = getenv("SLACK_BOT_TOKEN", "")
 SLACK_SIGNING_SECRET = getenv("SLACK_SIGNING_SECRET", "")
@@ -45,6 +44,7 @@ if SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET:
             token=SLACK_BOT_TOKEN,
             signing_secret=SLACK_SIGNING_SECRET,
             resolve_user_identity=True,
+            loading_text="Barbequeing...",
         )
     )
 
@@ -96,7 +96,7 @@ agent_os = AgentOS(
     mcp_auth=mcp_auth,
     lifespan=lifespan,
     db=get_postgres_db(),
-    agents=[agent_builder, platform_manager, chief],
+    agents=[chief, agent_builder, platform_manager],
     workflows=[deployment_check, run_evals],
     interfaces=interfaces,
     registry=registry,
