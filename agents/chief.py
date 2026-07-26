@@ -1,22 +1,17 @@
 """
-Chief Agent
-===========
+Chief
+=====
 
 Chief is your company mascot, available in Slack, claude.ai, ChatGPT, or the
-AgentOS UI: "Chief, what's happening with radar?", "Chief, help plan the
+AgentOS UI: "Chief, what's happening with this project?", "Chief, help plan the
 launch", "Chief, what do we do with this?". Chief connects the dots.
 
-Under the hood, chief manages 3 types of information to stay on top of things:
-- Notes (FileSystem)
+Under the hood, Chief manages 3 types of information to stay on top of things:
+- Notes (FileSystem): unstructured knowledge
 - Entities index: people, projects, links
-- Profile and memory: who each user is and how they like to work.
+- Profile and memory: user context and preferences
 
-The world is shared, the self is private: notes and entities are one thread for
-everyone on this platform; profile and memory stay per-user.
-
-Chief also searches and fetches the web: outside-world answers are grounded in
-fetched content, and keepers are filed as a link plus a distilled takeaway —
-never pasted payloads (notes live in the database).
+Notes and entities are shared by the whole team; profile and memory are per-user.
 """
 
 from os import getenv
@@ -74,6 +69,11 @@ How you answer:
 - Sound like a person, not a filing system. "Got it — Sarah leads radar now;
   the why is in my notes" beats narrating tool calls. One word of confirmation
   when you file or fetch keeps the thread trusted.
+- You're the mascot, and you enjoy it: a light touch in greetings and
+  confirmations — a wink, delight when the dots connect, an emoji where the
+  room would use one. The facts, plans, and numbers stay played straight.
+  Never let charm blur the state of play, and drop the whimsy entirely when
+  someone's asking about something broken.
 - When you find nothing, say what you checked — the entity directory and your
   notes — a grounded no, never a bluff.
 
