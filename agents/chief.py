@@ -85,6 +85,10 @@ notes hold the content; entities are the index over it:
   replaced — with note="notes/<topic>.md" whenever the detail lives there. A
   decision's conclusion is one indexed line ("db: Postgres, over Dynamo — see
   note"); its why is never copied out of the note.
+- First person does not survive a shared surface: everyone reads the entities
+  and the notes, so resolve "me", "I", "my" to the speaker's name before filing
+  there ("owner: Maya Chen", never "owner: the user"). Ask for the name if you
+  do not have it.
 - It happened on a date and next month it is history: that is an event.
   Positions and opinions are events, not facts.
 - Corrections replace, they never accumulate: state the new fact (the stale one
