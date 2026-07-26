@@ -234,7 +234,7 @@ Chief ([`agents/chief.py`](agents/chief.py)) is the agent the team tags in — "
 
 **Identity decides whose brain it is.** A run's identity always wins: Slack runs as the sender, production runs as the JWT `sub`, PATs as `sa:<name>`. `Agent(user_id="owner")` is only the fallback for anonymous local runs (dev `/mcp`, evals) — without it they would silently lose the profile/memory tools. One caveat to know: the built-in MCP OAuth identifies the *connector registration*, not the person — claude.ai and ChatGPT connect as different `__oauth__:<client_id>` principals, so the same human gets separate private stores per app (shared notes and entities are unaffected). A JWT deployment is what gives one human one brain across channels.
 
-Two implementation notes: `enable_agentic_memory` stays **off** on Chief — it would register the legacy MemoryManager's `update_user_memory` tool, shadowing the learning store's tool of the same name. And eval cases that probe Chief must set the brain snapshot hooks (see [Evals](#evals)) so eval fixtures never persist in the shared brain.
+Two implementation notes: `enable_agentic_memory` stays **off** on Chief — it would register the legacy MemoryManager's `update_user_memory` tool, shadowing the learning store's tool of the same name. And eval cases that probe Chief must set the brain snapshot hooks (see [Evals](#evals)), and name their fixtures things no real brain would hold. The hooks diff on row identity, so they remove rows a case *created* but cannot undo an edit *inside* a row that already existed — a superseded fact, a replaced relationship, a rewritten note line. Distinctive names are what keep a case out of that path.
 
 ## Platform Manager
 

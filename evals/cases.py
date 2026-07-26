@@ -60,7 +60,16 @@ async def cleanup_new_components(pre_run_ids: set[str], result: CaseResult) -> N
 def snapshot_brain_state() -> dict[str, set[str]]:
     """`setup` hook for Chief cases: the learning rows (entities, profile fields,
     memories) and note paths present before the case runs, so the teardown can
-    delete only what the case created."""
+    delete only what the case created.
+
+    The diff is on identity, not content, and that bounds what it can undo.
+    Learning ids are deterministic (`entity_<namespace>_<type>_<id>`,
+    `user_profile_<user_id>`, `memories_<user_id>`), and an entity's facts,
+    events and relationships all live inside one row — so a case that *merges*
+    into a row or a note that already existed is invisible here and survives the
+    teardown. That is why every fixture below uses names no real brain would
+    hold: keep a case's writes on rows it created, and the diff can undo them.
+    """
     return {
         "learning_ids": {str(row["learning_id"]) for row in eval_db.get_learnings(limit=1000)},
         "note_paths": {meta.path for meta in notes.list()},
@@ -68,9 +77,14 @@ def snapshot_brain_state() -> dict[str, set[str]]:
 
 
 def delete_new_brain_state(pre_run: dict[str, set[str]]) -> None:
-    """Hard-deletes learning rows and notes that did not exist before the case ran —
-    the shared brain must not accumulate eval fixtures, and a user's own entities
-    and notes are never touched."""
+    """Hard-deletes learning rows and notes that did not exist before the case ran.
+
+    A pre-existing row is never deleted, so a user's own entities and notes
+    survive. What this cannot undo is an edit *inside* one: a fact superseded on
+    an entity that already existed, a relationship replaced, a line rewritten in
+    an existing note. Distinctive fixture names are what keep cases out of that
+    path — see `snapshot_brain_state`.
+    """
     for row in eval_db.get_learnings(limit=1000):
         if str(row["learning_id"]) not in pre_run["learning_ids"]:
             eval_db.delete_learning(str(row["learning_id"]))
@@ -99,18 +113,25 @@ CASES: tuple[Case, ...] = (
     # Chief — capture: the fact lands in the entity graph (reliability) and the
     # reply confirms it briefly (judge). The snapshot-diff teardown removes
     # whatever the case wrote to the shared brain.
+    #
+    # The names are deliberately unreal. An earlier version of this case said
+    # "Sarah Chen is leading the new radar project" — a paraphrase of Chief's own
+    # quick prompt in app/config.yaml — so on any brain where a user had clicked
+    # that prompt, the case merged into their real `radar` entity and note:
+    # superseding their fact, replacing their relationship, rewriting their note
+    # lines. None of it revertible, because the rows pre-existed the snapshot.
     Case(
         name="chief_captures_project_fact",
         agent=chief,
-        input="Remember: Sarah Chen is leading the new radar project.",
+        input="Remember: Wilhelmina Ashgrove-Petrov is leading the Quillhawk-Meridian rollout.",
         tags=("smoke", "release"),
         timeout_seconds=90,
         setup=snapshot_brain_state,
         teardown=cleanup_new_brain_state,
         criteria=(
-            "Briefly confirms it recorded that Sarah Chen leads the radar project. "
-            "Does not invent extra facts beyond the message, does not interrogate the "
-            "user, and does not claim it cannot remember things."
+            "Briefly confirms it recorded that Wilhelmina Ashgrove-Petrov leads the "
+            "Quillhawk-Meridian rollout. Does not invent extra facts beyond the message, "
+            "does not interrogate the user, and does not claim it cannot remember things."
         ),
         expected_tool_calls=("remember_about",),
     ),
