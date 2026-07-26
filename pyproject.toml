@@ -10,7 +10,7 @@ authors = [{ name = "Agno", email = "hello@agno.com" }]
 dependencies = [
   # TEMP: agno 2.8.4 pre-release from the entity-memory-revamp branch (exact SHA).
   # Swap back to "agno[os,mcp,slack,pgvector,psycopg]==2.8.4" when it lands on PyPI.
-  "agno[os,mcp,slack,pgvector,psycopg] @ https://github.com/agno-agi/agno/archive/418adcae43734275a9b888cbac8ba6a279656814.tar.gz#subdirectory=libs/agno",
+  "agno[os,mcp,slack,pgvector,psycopg] @ https://github.com/agno-agi/agno/archive/7c7e2aa25ced69957e215fb5cb5059c50bcb00f1.tar.gz#subdirectory=libs/agno",
   "openai",
   "parallel-web",
   "python-dotenv",
