@@ -141,7 +141,7 @@ from agents.<slug_underscore> import <slug_underscore>
 
 agent_os = AgentOS(
     ...
-    agents=[agent_builder, platform_manager, chief, <slug_underscore>],
+    agents=[chief, agent_builder, platform_manager, <slug_underscore>],
     ...
 )
 ```

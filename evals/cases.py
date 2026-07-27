@@ -63,21 +63,41 @@ def snapshot_learning_state() -> dict[str, set[str]]:
     platform-manager): the learning ids (entities, profiles, memories) and note paths present
     before the case runs, so the teardown can delete only what the case created."""
     return {
-        "learning_ids": {str(row["learning_id"]) for row in eval_db.get_learnings(limit=1000)},
+        "learning_ids": {str(row["learning_id"]) for row in eval_db.get_learnings()},
         "note_paths": {meta.path for meta in notes.list()},
     }
 
 
-def delete_new_learning_state(pre_run: dict[str, set[str]]) -> None:
+# One case writes a handful of learning rows. Far more new rows means the snapshot the
+# diff rests on is not trustworthy — get_learnings swallows DB errors into an empty list,
+# so a transient failure during `setup` makes every pre-existing row look new.
+_MAX_SWEPT_LEARNINGS = 25
+
+
+def delete_new_learning_state(pre_run: dict[str, set[str]], max_swept: int | None = None) -> None:
     """Hard-deletes learnings (entities, profiles, memories) and notes that did not exist
     before the case ran. Also used standalone by the improve-agent skill to bracket
-    probe loops against learning-store agents."""
-    for row in eval_db.get_learnings(limit=1000):
-        if str(row["learning_id"]) not in pre_run["learning_ids"]:
-            eval_db.delete_learning(str(row["learning_id"]))
+    probe loops against learning-store agents (uncapped there — a probe campaign
+    legitimately creates many rows)."""
+    # Notes first: their snapshot cannot be silently empty (notes.list() raises on DB
+    # failure, failing the setup), so they are safe to sweep even when the learnings
+    # guard below refuses.
     for meta in notes.list():
         if meta.path not in pre_run["note_paths"]:
             notes.delete(meta.path)
+    new_ids = [
+        str(row["learning_id"])
+        for row in eval_db.get_learnings()
+        if str(row["learning_id"]) not in pre_run["learning_ids"]
+    ]
+    if max_swept is not None and len(new_ids) > max_swept:
+        raise RuntimeError(
+            f"refusing to sweep {len(new_ids)} learning rows (cap {max_swept}): the pre-case "
+            "snapshot looks incomplete, so these rows are not safely attributable to the case. "
+            "Inspect them and delete by hand: eval_db.delete_learning(<id>)."
+        )
+    for learning_id in new_ids:
+        eval_db.delete_learning(learning_id)
 
 
 async def cleanup_new_learning_state(pre_run: dict[str, set[str]], result: CaseResult) -> None:
@@ -87,7 +107,7 @@ async def cleanup_new_learning_state(pre_run: dict[str, set[str]], result: CaseR
     if result.timed_out:
         # Give an in-flight write a moment to commit so the sweep sees it.
         await asyncio.sleep(10)
-    await asyncio.to_thread(delete_new_learning_state, pre_run)
+    await asyncio.to_thread(delete_new_learning_state, pre_run, _MAX_SWEPT_LEARNINGS)
 
 
 def snapshot_builder_state() -> dict[str, Any]:
@@ -104,7 +124,7 @@ def delete_new_builder_state(pre_run: dict[str, Any]) -> None:
     """Hard-deletes components and learning/note rows that did not exist before the
     case ran."""
     delete_new_components(pre_run["component_ids"])
-    delete_new_learning_state(pre_run["learning_state"])
+    delete_new_learning_state(pre_run["learning_state"], _MAX_SWEPT_LEARNINGS)
 
 
 async def cleanup_new_builder_state(pre_run: dict[str, Any], result: CaseResult) -> None:
@@ -143,18 +163,21 @@ CASES: tuple[Case, ...] = (
     ),
     # Chief — live web: outside-world questions get searched and grounded, never
     # answered from prior knowledge. Live because correctness depends on today's web.
+    # The subject is real on the web but off any team's entity directory — the fixture
+    # rule holds for live probes too, since a merge into a pre-existing entity cannot
+    # be undone by the teardown.
     Case(
         name="chief_answers_from_live_web",
         agent=chief,
-        input="What did Anthropic publish about agent research recently? Just tell me — no need to file it.",
+        input="What has the James Webb Space Telescope found recently? Just tell me — no need to file it.",
         tags=("live",),
         timeout_seconds=120,
         setup=snapshot_learning_state,
         teardown=cleanup_new_learning_state,
         criteria=(
-            "Answers the question by citing at least one real Anthropic URL "
-            "(anthropic.com domain). The response is grounded in fetched content "
-            "rather than refusing to answer."
+            "Answers the question by citing at least one real URL from the fetched "
+            "results (nasa.gov, webbtelescope.org, or another real source domain). "
+            "The response is grounded in fetched content rather than refusing to answer."
         ),
         expected_tool_calls=(_WEB_TOOL,),
     ),

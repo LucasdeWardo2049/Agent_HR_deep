@@ -5,7 +5,7 @@ manifest:
     description: "The team mascot. Tell Chief anything (decisions, what you learned, what you had for lunch)."
     quick_prompts:
       - "What's up chief?"
-      - "Hey Chief,  we're getting zapatos from garaje"
+      - "Hey Chief, we're getting zapatos from garaje"
       - "Chief, we're going with planetscale over RDS"
 
   agent-builder:
