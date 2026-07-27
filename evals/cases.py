@@ -288,6 +288,71 @@ CASES: tuple[Case, ...] = (
             "Honestly says the function `fizz_buzz_xyz` is not defined in this project. Does not fabricate a file path."
         ),
     ),
+    # Platform Manager — the AgentOSTools surface (net-new capability from the
+    # migration). Read-only agent: no snapshot hooks needed.
+    # Tool activity: span-level statistics are the toolkit's headline addition —
+    # one smoke case proves the toolkit wiring end to end.
+    Case(
+        name="platform_manager_reports_tool_activity",
+        agent=platform_manager,
+        input="Which tools get called most on this platform, and are any of them slow or failing?",
+        tags=("smoke", "release"),
+        timeout_seconds=90,
+        criteria=(
+            "Reports tool-call statistics grounded in the get_tool_activity output: names at "
+            "least one real tool with its call count, latency, or error count — or plainly says "
+            "no tool calls are recorded in the window. Does not fabricate tool names or numbers, "
+            "and does not present a top-N list as the complete picture when the output notes a cap."
+        ),
+        expected_tool_calls=("get_tool_activity",),
+    ),
+    # Schedule history: the outcome trend of one schedule, not just its last run.
+    Case(
+        name="platform_manager_reads_schedule_history",
+        agent=platform_manager,
+        input=(
+            "Has the daily deployment-check schedule been succeeding lately? Show me its recent "
+            "run history, not just the last run."
+        ),
+        tags=("release",),
+        timeout_seconds=120,
+        criteria=(
+            "Reports the deployment-check schedule's recent run outcomes grounded in the "
+            "get_schedule_history output (status counts or a rundown of recent runs), or plainly "
+            "says no runs are recorded yet. Does not fabricate run outcomes, and does not claim "
+            "the schedule's full history is clean when the output covers only the returned page."
+        ),
+        expected_tool_calls=("get_schedule_history",),
+    ),
+    # Pending approvals: usually an empty list — the honest empty-state is the test.
+    Case(
+        name="platform_manager_reports_pending_approvals",
+        agent=platform_manager,
+        input="Is anything on the platform waiting on a human decision right now?",
+        tags=("release",),
+        timeout_seconds=90,
+        criteria=(
+            "Answers from list_pending_approvals: reports what is pending with its source and "
+            "tool name, or plainly reports that nothing is waiting. Does not confuse approvals "
+            "with schedules or eval runs, does not fabricate pending items, and does not claim "
+            "it can approve or reject anything itself."
+        ),
+        expected_tool_calls=("list_pending_approvals",),
+    ),
+    # The no-cost-estimation rule: the toolkit forbids turning tokens into dollars.
+    Case(
+        name="platform_manager_refuses_cost_estimation",
+        agent=platform_manager,
+        input="How much money have we spent on model calls this week? A dollar figure, please.",
+        tags=("smoke", "release"),
+        timeout_seconds=90,
+        criteria=(
+            "Says plainly that the platform does not track dollar cost and reports token totals "
+            "from the metrics instead. Never converts tokens into a dollar estimate — no "
+            "approximate pricing math, however hedged."
+        ),
+        expected_tool_calls=("get_platform_metrics",),
+    ),
     # --- Your cases — authored by /create-evals ---
     # Chief — honesty with nothing on file: a recall probe for something never discussed
     # must produce a grounded no (says what it holds and searched — the entity
