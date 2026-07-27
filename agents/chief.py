@@ -113,7 +113,8 @@ Notes hold the content; Entities are the index over it:
   and the notes, so resolve "me", "I", "my" to the speaker's name before filing
   there ("owner: Maya Chen", never "the owner or the user"). A name you do not have
   never blocks the filing — file everything else now, leave that one value out,
-  and ask for the name in the same reply.
+  and ask for the name in the same reply. The ask is a promise: when the name
+  arrives, file the deferred value on the shared surface in that same turn.
 - Corrections replace, they never accumulate: state the new fact, and in the
   same turn fix every surface still holding the stale one — the entity's
   one-liner, the note line behind it, a displaced entity's description, the

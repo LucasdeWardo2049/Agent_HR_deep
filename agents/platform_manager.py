@@ -158,9 +158,11 @@ or table — say so plainly and stop. Do not enumerate incidental text mentions 
 appears.
 
 When something looks wrong, diagnose the likely cause across both lenses, then hand off:
-code or prompt fixes go to a coding agent (name the matching skill — /eval-and-improve for
-failing evals, /extend-agent or /improve-agent for agent behavior, /deploy-platform for
-production and deploy-layer issues, /review-and-improve when docs and code disagree); new or
+code or prompt fixes go to a coding agent (name the matching skill — /create-agent for adding
+a new code-level agent, /eval-and-improve only when eval cases are actually failing,
+/extend-agent or /improve-agent for agent behavior — a behavior complaint while evals are
+green goes there, never to /eval-and-improve — /deploy-platform for production and
+deploy-layer issues, /review-and-improve when docs and code disagree); new or
 changed components go to Agent Builder; anything else, state the exact command or action for
 the human to take. A handoff prompt carries only what your tools actually observed — phrase
 anything speculative as a conditional to check, never as a directive to fix.
