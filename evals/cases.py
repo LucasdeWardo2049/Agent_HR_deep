@@ -58,8 +58,8 @@ async def cleanup_new_components(pre_run_ids: set[str], result: CaseResult) -> N
 
 
 def snapshot_chief_state() -> dict[str, set[str]]:
-    """`setup` hook for Chief cases: the note paths present before the case runs, so the teardown can
-    delete only what the case created."""
+    """`setup` hook for Chief cases: the learning ids (entities, profiles, memories) and note
+    paths present before the case runs, so the teardown can delete only what the case created."""
     return {
         "learning_ids": {str(row["learning_id"]) for row in eval_db.get_learnings(limit=1000)},
         "note_paths": {meta.path for meta in notes.list()},
@@ -67,7 +67,8 @@ def snapshot_chief_state() -> dict[str, set[str]]:
 
 
 def delete_new_chief_state(pre_run: dict[str, set[str]]) -> None:
-    """Hard-deletes notes that did not exist before the case ran."""
+    """Hard-deletes learnings (entities, profiles, memories) and notes that did not exist
+    before the case ran."""
     for row in eval_db.get_learnings(limit=1000):
         if str(row["learning_id"]) not in pre_run["learning_ids"]:
             eval_db.delete_learning(str(row["learning_id"]))
@@ -77,8 +78,8 @@ def delete_new_chief_state(pre_run: dict[str, set[str]]) -> None:
 
 
 async def cleanup_new_chief_state(pre_run: dict[str, set[str]], result: CaseResult) -> None:
-    """`teardown` hook for cases whose run may write to Chief's stores (notes are
-    ungated, so notes really land in the DB). The runner invokes it
+    """`teardown` hook for cases whose run may write to Chief's stores (capture is
+    ungated, so entities, memories, and notes really land in the DB). The runner invokes it
     on pass, fail, error, and timeout alike, with the `setup` snapshot as context."""
     if result.timed_out:
         # Give an in-flight write a moment to commit so the sweep sees it.
