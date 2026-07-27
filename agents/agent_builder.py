@@ -11,9 +11,6 @@ from app.registry import get_agno_docs_tools, registry
 from app.settings import default_model
 from db import get_postgres_db
 
-# The shared self: the same per-user profile and memory stores Chief wires —
-# one human, one profile and memory across every agent. The shared world
-# (entities, notes) stays with Chief.
 memory = LearningMachine(
     db=get_postgres_db(),
     user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),  # private to each user

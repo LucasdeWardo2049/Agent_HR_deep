@@ -28,9 +28,6 @@ codebase_context = WorkspaceContextProvider(
 
 _db = get_postgres_db()
 
-# The shared self: the same per-user profile and memory stores Chief wires —
-# one human, one profile and memory across every agent. The shared world
-# (entities, notes) stays with Chief.
 memory = LearningMachine(
     db=_db,
     user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),  # private to each user
