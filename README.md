@@ -198,7 +198,7 @@ It asks a few questions, generates the agent file in `agents/`, registers it in 
 Improve your agents by running the following skills:
 
 - **`/extend-agent`** — Add a tool, add a capability, refine the instructions, fix a known bug.
-- **`/improve-agent`** — Claude simulates scenarios from the agent's `INSTRUCTIONS`, runs them against the live container, judges the responses, and edits until they pass.
+- **`/improve-agent`** — Claude simulates scenarios from the agent's `INSTRUCTIONS` and its real usage recorded in Postgres, runs them against the live container, judges the responses, and edits until they pass.
 
 ### Evaluate
 

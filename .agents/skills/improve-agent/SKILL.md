@@ -1,13 +1,13 @@
 ---
 name: improve-agent
-description: Autonomous hardening loop for an existing agent — derive probes from the agent's INSTRUCTIONS, run them against the live container, judge responses, edit the agent file, and re-probe until it reliably does what its instructions say. No user input needed. Use to harden an agent against its stated intent; to make a concrete change instead, use extend-agent.
+description: Autonomous hardening loop for an existing agent — derive probes from the agent's INSTRUCTIONS and from its real usage recorded in Postgres, run them against the live container, judge responses, edit the agent file, and re-probe until it reliably does what its instructions say. No user input needed. Use to harden an agent against its stated intent; to make a concrete change instead, use extend-agent.
 ---
 
 # Improve an Agent
 
 > _**Coding-agent workflow** — a `/slash-command` your coding agent (Claude Code, Codex, others) runs while developing this repo. Invoke it by name (e.g. `/improve-agent`) or describe the task and it triggers automatically._
 
-You are recursively improving a target agent **autonomously**. **No user-supplied test cases** — you derive your own probes from the agent's stated purpose (its `INSTRUCTIONS`), test the agent against them, judge the results, and iterate on `agents/<slug>.py` until the agent reliably does what its instructions say it does.
+You are recursively improving a target agent **autonomously**. **No user-supplied test cases** — you derive your own probes from the agent's stated purpose (its `INSTRUCTIONS`) and from its recorded usage (real sessions in Postgres, when the platform has any), test the agent against them, judge the results, and iterate on `agents/<slug>.py` until the agent reliably does what its instructions say it does.
 
 This is the autonomous half of the iteration loop. The user-driven half lives in [`extend-agent`](../extend-agent/SKILL.md) (add a tool, add a capability, refine the prompt, fix a specific bug). Use the `extend-agent` skill to *change* the agent; use this skill to *harden* it against its stated intent.
 
@@ -40,7 +40,22 @@ Restate the agent's purpose to the user in 1-2 sentences before generating probe
 
 ## 2. Derive probes
 
-Generate enough probes to meaningfully exercise the agent's stated capabilities — aim for **2-3 per distinct rule in `INSTRUCTIONS`, plus 2 adversarial probes**. Most agents in this repo land at 8-12. Cover four categories:
+Probes come from two sources: what the agent *promises* (`INSTRUCTIONS`) and what it actually *faces* (recorded usage). Mine the record first — a real ask is the strongest probe there is, because it will come back.
+
+**Mine usage.** The platform records how the agent actually gets used — the same read [`create-evals`](../create-evals/SKILL.md) uses for scenarios (needs the repo venv: `source .venv/bin/activate`; the compose defaults reach the local DB):
+
+```python
+from db import get_postgres_db
+db = get_postgres_db()
+# deserialize=False keeps the (rows, total) tuple shape and returns plain dicts
+sessions, _ = db.get_sessions(component_id="<slug>", limit=20, deserialize=False)
+asks = [run["input"]["input_content"] for s in sessions for run in (s.get("runs") or []) if run.get("input")]
+evals, _ = db.get_eval_runs(limit=20, deserialize=False)   # eval history — a recently failed case is a probe with its expected behavior already written
+```
+
+Skim the asks for three things: **recurring shapes** (the golden path as users actually phrase it), **visible fumbles** (read the run's output where something looks off — wrong tool, fabrication, wrong format; a recorded response is a *scenario*, never the oracle — the agent may have been wrong that day, and expected behavior still comes from `INSTRUCTIONS`), and **out-of-scope asks** (users requesting things `INSTRUCTIONS` never promised — probe how gracefully the agent declines today, and surface the gap in Step 8; it may be `extend-agent`'s next feature). Reword private content before it becomes a probe — real names, real decisions — because probes run against the live agent, and a learning agent like `chief` files what it's told. A fresh platform with no sessions is fine: instruction-derived probes are the floor, mining only adds.
+
+**Derive from `INSTRUCTIONS`.** Generate enough probes to meaningfully exercise the agent's stated capabilities — aim for **2-3 per distinct rule in `INSTRUCTIONS`, plus 2 adversarial probes**, folding mined asks into the categories they fit. Most agents in this repo land at 8-12. Cover four categories:
 
 - **Golden path** (3-5): typical, in-scope questions the agent should handle well.
 - **Edge cases** (2-3): ambiguous, out-of-scope, or boundary questions. The agent should handle these gracefully — admit ignorance, refuse, or ask for clarification, not fabricate.
@@ -158,7 +173,7 @@ Summarize for the user:
 - `git diff agents/<slug>.py` (one short block).
 - Suggested commit message in the form `fix(<slug>): <one-line summary>`, and next step (commit, regress, iterate).
 
-For a regression check across the committed eval suite, see [`eval-and-improve`](../eval-and-improve/SKILL.md). And if a probe caught a real issue, don't let it evaporate — offer to graduate it into a committed case via [`create-evals`](../create-evals/SKILL.md), so the regression you just fixed stays fixed.
+For a regression check across the committed eval suite, see [`eval-and-improve`](../eval-and-improve/SKILL.md). And if a probe caught a real issue, don't let it evaporate — offer to graduate it into a committed case via [`create-evals`](../create-evals/SKILL.md), so the regression you just fixed stays fixed. Probes mined from real sessions are the strongest candidates: that ask has already happened once.
 
 ---
 

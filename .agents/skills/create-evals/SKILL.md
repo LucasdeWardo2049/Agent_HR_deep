@@ -34,7 +34,7 @@ asks = [run["input"]["input_content"] for s in sessions for run in (s.get("runs"
 evals, _ = db.get_eval_runs(limit=20, deserialize=False)   # what's already covered, what's flaky
 ```
 
-Real session inputs make the best case inputs — they're what the agent will face again. Two rules: **a recorded answer is a scenario, never a golden answer** (the agent may have been wrong that day; the rubric states what a correct answer looks like, not what yesterday's said — and keep only the timeless shape of correctness: versions, dates, counts, and today's news enter the rubric as "a current X with a source", never as the value itself), and a fresh platform with no sessions is fine — derive scenarios from `INSTRUCTIONS` instead, the way improve-agent derives probes.
+Real session inputs make the best case inputs — they're what the agent will face again. Two rules: **a recorded answer is a scenario, never a golden answer** (the agent may have been wrong that day; the rubric states what a correct answer looks like, not what yesterday's said — and keep only the timeless shape of correctness: versions, dates, counts, and today's news enter the rubric as "a current X with a source", never as the value itself), and a fresh platform with no sessions is fine — derive scenarios from `INSTRUCTIONS` instead, the same fallback improve-agent's probes use.
 
 ## 4. Propose what to test
 

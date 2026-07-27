@@ -149,7 +149,7 @@ Two options:
 Two recursive loops over the same agent. Use them together.
 
 - **`/extend-agent`** ([`.agents/skills/extend-agent`](.agents/skills/extend-agent/SKILL.md)) — **you drive.** Add a tool, add a capability, refine the prompt, fix a known bug. Claude is the Agno-aware pair-programmer (uses the `agno-docs` MCP for any toolkit research). Loop: change → smoke-test → "anything else?".
-- **`/improve-agent`** ([`.agents/skills/improve-agent`](.agents/skills/improve-agent/SKILL.md)) — **Claude drives.** Derives probes from the agent's `INSTRUCTIONS`, judges, edits, re-runs. No user input needed. Loop: probe → judge → edit → re-probe.
+- **`/improve-agent`** ([`.agents/skills/improve-agent`](.agents/skills/improve-agent/SKILL.md)) — **Claude drives.** Derives probes from the agent's `INSTRUCTIONS` and from real usage in Postgres (when the platform has any), judges, edits, re-runs. No user input needed. Loop: mine → probe → judge → edit → re-probe.
 
 Use `/extend-agent` to *change* the agent; use `/improve-agent` to *harden* it against its stated intent. Most fixes from either loop are one sentence in `INSTRUCTIONS`.
 
@@ -178,7 +178,7 @@ These workflows cover platform setup, the agent-development lifecycle, and the p
 - **`/setup-platform`** — take a fresh clone to a running platform with a first agent live on it: Docker check, `.env`, boot, MCP proof, the AgentOS UI connect, then a `create-agent` handoff. The README's Get Started prompt and the os.agno.com onboarding prompt both drive it.
 - **`/create-agent`** — scaffold a new agent: guided discovery or from a concrete idea → generate `agents/<slug>.py`, register it, smoke-test it live.
 - **`/extend-agent`** — you drive. Add a tool/source, refine `INSTRUCTIONS`, fix a known bug. Uses the `agno-docs` MCP for grounded toolkit research.
-- **`/improve-agent`** — Claude drives. Derives probes from the agent's `INSTRUCTIONS`, judges, edits, re-runs. No user input needed.
+- **`/improve-agent`** — Claude drives. Derives probes from the agent's `INSTRUCTIONS` and real usage in Postgres, judges, edits, re-runs. No user input needed.
 - **`/create-evals`** — author eval coverage for an agent: map its promises, mine real sessions from Postgres for scenarios, propose capabilities, write and audit `Case` entries. How a user's own agents join the suite.
 - **`/eval-and-improve`** — run the eval suite, diagnose failures, fix in scope until green.
 - **`/review-and-improve`** — repo-wide drift sweep (docs vs code vs config).
