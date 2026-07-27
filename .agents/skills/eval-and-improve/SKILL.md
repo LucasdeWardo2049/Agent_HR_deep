@@ -103,8 +103,8 @@ Case(
     # Required whenever the case's agent has the ungated create/edit/publish
     # Studio tools (every agent-builder case) — the snapshot-diff hooks delete
     # whatever the run created, even on timeout:
-    setup=snapshot_component_ids,
-    teardown=cleanup_new_components,
+    setup=snapshot_builder_state,
+    teardown=cleanup_new_builder_state,
 )
 ```
 
@@ -147,6 +147,6 @@ class Case:
 
 The runner calls `agent.arun()` once per case and feeds the response into both checks, so cases that set both fields cost one agent run, not two.
 
-Set `setup=snapshot_component_ids, teardown=cleanup_new_components` (both in [`evals/cases.py`](../../../evals/cases.py)) on every case whose agent can reach the ungated create/edit/publish Studio tools (all agent-builder cases do this): setup snapshots Studio component ids before the case and teardown hard-deletes only the new ones after, so eval runs never leave components behind and never touch pre-existing ones. The same pattern covers Chief: `setup=snapshot_chief_state, teardown=cleanup_new_chief_state` on every case that probes `chief`, so entities, memories, and notes a case *creates* are removed after it. One limit to know, because it decides how you write the case: the diff is on row identity, and an entity's facts, events and relationships all live inside a single row. So a case that merges into an entity, profile, or note that already existed leaves that edit behind — a superseded fact or a rewritten note line cannot be undone. Give every fixture a name no real team would have on file (`chief_captures_project_fact` and `chief_grounded_no_on_unknown` both do), and the case only ever touches rows it created.
+Set `setup=snapshot_builder_state, teardown=cleanup_new_builder_state` (both in [`evals/cases.py`](../../../evals/cases.py)) on every case whose agent can reach the ungated create/edit/publish Studio tools (all agent-builder cases do this): setup snapshots Studio component ids plus learning/note state before the case and teardown hard-deletes only the new rows after, so eval runs never leave components behind and never touch pre-existing ones. The same pattern covers the other learning-store agents: `setup=snapshot_learning_state, teardown=cleanup_new_learning_state` on every case that probes `chief` or `platform-manager`, so entities, memories, and notes a case *creates* are removed after it. One limit to know, because it decides how you write the case: the diff is on row identity, and an entity's facts, events and relationships all live inside a single row. So a case that merges into an entity, profile, or note that already existed leaves that edit behind — a superseded fact or a rewritten note line cannot be undone. Give every fixture a name no real team would have on file (`chief_captures_project_fact` and `chief_grounded_no_on_unknown` both do), and the case only ever touches rows it created.
 
 `evals/cases.py` also conditions Chief's expected web tool name on `PARALLEL_API_KEY` (Parallel SDK if the key is set, keyless MCP otherwise). If your shell has the var set but `.env` doesn't (or vice versa), the assertion checks the wrong tool — sync them before debugging.

@@ -82,7 +82,7 @@ For each probe, write a one-line **expected behavior** describing what "good" lo
 > delete_new_components(set(open('/tmp/pre-probe-components.txt').read().split()))"
 > ```
 
-> **If the target is `chief` (or any learning agent wired to shared stores): probes leave durable rows.** Capture is ungated — notes and entities written during a probe land in the same stores real teammates read back. Bracket the loop with the eval suite's chief snapshot pair, exactly like the builder bracket above:
+> **If the target carries learning stores (`chief`, `agent-builder`, `platform-manager`, or any agent wired with `learning=`): probes leave durable rows.** Capture is ungated — notes, entities, and memories written during a probe land in the same stores real teammates read back. Bracket the loop with the eval suite's learning snapshot pair — and for `agent-builder`, stack it with the component bracket above:
 >
 > ```bash
 > source .venv/bin/activate
@@ -91,15 +91,15 @@ For each probe, write a one-line **expected behavior** describing what "good" lo
 > python -c "
 > from dotenv import load_dotenv; load_dotenv()
 > import json
-> from evals.cases import snapshot_chief_state
-> print(json.dumps({k: sorted(v) for k, v in snapshot_chief_state().items()}))" > /tmp/pre-probe-chief.json
+> from evals.cases import snapshot_learning_state
+> print(json.dumps({k: sorted(v) for k, v in snapshot_learning_state().items()}))" > /tmp/pre-probe-learning.json
 >
 > # once, after the last probe — removes only the rows the probes created
 > python -c "
 > from dotenv import load_dotenv; load_dotenv()
 > import json
-> from evals.cases import delete_new_chief_state
-> delete_new_chief_state({k: set(v) for k, v in json.load(open('/tmp/pre-probe-chief.json')).items()})"
+> from evals.cases import delete_new_learning_state
+> delete_new_learning_state({k: set(v) for k, v in json.load(open('/tmp/pre-probe-learning.json')).items()})"
 > ```
 >
 > The diff removes rows the probes *created*; it cannot undo an edit *inside* a row that already existed — a probe that supersedes a real fact is unrecoverable. Two rules keep probes out of that path: give every probe fixture content no real team would have on file (distinctive invented names, projects, decisions — the eval suite's cases show the register), and never replay a mined ask verbatim — rewording it (the privacy rule above) is also what keeps it from colliding with the very row it came from.
@@ -202,7 +202,7 @@ For a regression check across the committed eval suite, see [`eval-and-improve`]
 
 ## A worked example
 
-Target: `chief`. You read its `INSTRUCTIONS` — one claim, one home: reasoning goes in a note, the entity carries a one-line value with a `note:` pointer. Chief is a learning agent, so you bracket the loop with the chief snapshot pair from Step 2 and keep every probe on fixture content.
+Target: `chief`. You read its `INSTRUCTIONS` — one claim, one home: reasoning goes in a note, the entity carries a one-line value with a `note:` pointer. Chief is a learning agent, so you bracket the loop with the learning snapshot pair from Step 2 and keep every probe on fixture content.
 
 You generate 10 probes. One: *"we picked Quillbase over Marrowstone because the ops burden was lower — keep this."* Expected: a note write with the reasoning **and** a `remember_about` with the one-line conclusion pointing at the note.
 

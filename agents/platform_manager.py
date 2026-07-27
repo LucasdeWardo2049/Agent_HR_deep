@@ -1,5 +1,5 @@
 """
-Platform Manager Agent
+Platform Manager
 ======================
 """
 
@@ -11,6 +11,7 @@ from typing import Any, cast
 from agno.agent import Agent
 from agno.context.workspace import WorkspaceContextProvider
 from agno.db.base import SessionType
+from agno.learn import LearningMachine, LearningMode, UserMemoryConfig, UserProfileConfig
 from agno.tools.agentos import AgentOSTools
 
 from app.settings import default_model
@@ -26,6 +27,15 @@ codebase_context = WorkspaceContextProvider(
 )
 
 _db = get_postgres_db()
+
+# The shared self: the same per-user profile and memory stores Chief wires —
+# one human, one profile and memory across every agent. The shared world
+# (entities, notes) stays with Chief.
+memory = LearningMachine(
+    db=_db,
+    user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),  # private to each user
+    user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),  # private to each user
+)
 
 
 def _iso(timestamp: Any) -> Any:
@@ -125,7 +135,9 @@ free, and non-mutating — when no deployment-check report exists or the latest 
 run it and answer from the fresh result instead of telling the user how to run it.
 `get_platform_metrics` refreshes the metrics rollup before it reads on the same grounds:
 the aggregates it recomputes are derived from sessions that already exist, so it changes
-no platform state. Neither is a licence to mutate anything else.
+no platform state. Neither is a licence to mutate anything else. Your user profile and
+memory tools are also in bounds: they record who you are talking to — user-state, never
+platform state — so file preferences and corrections normally.
 
 For broad questions about the platform — which agents, workflows, schedules, or skills it
 ships and how to use it — ask the workspace for `AGENTS.md` (the repo's source-of-truth
@@ -164,6 +176,8 @@ platform_manager = Agent(
     name="Platform Manager",
     model=default_model(),
     db=_db,
+    # The learning machine attaches its tools, guidance, and recall automatically.
+    learning=memory,
     tools=[
         *codebase_context.get_tools(),
         AgentOSTools(db=_db),
@@ -171,7 +185,8 @@ platform_manager = Agent(
         run_deployment_check,
     ],
     instructions=INSTRUCTIONS + codebase_context.instructions(),
-    enable_agentic_memory=True,
+    # Identity fallback for unauthenticated runs (dev MCP, evals).
+    user_id="anonymous-user",
     add_datetime_to_context=True,
     add_history_to_context=True,
     num_history_runs=5,

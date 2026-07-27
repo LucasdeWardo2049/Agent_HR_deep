@@ -4,11 +4,21 @@ Agent Builder
 """
 
 from agno.agent import Agent
+from agno.learn import LearningMachine, LearningMode, UserMemoryConfig, UserProfileConfig
 from agno.tools.studio import StudioTools
 
 from app.registry import get_agno_docs_tools, registry
 from app.settings import default_model
 from db import get_postgres_db
+
+# The shared self: the same per-user profile and memory stores Chief wires —
+# one human, one profile and memory across every agent. The shared world
+# (entities, notes) stays with Chief.
+memory = LearningMachine(
+    db=get_postgres_db(),
+    user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),  # private to each user
+    user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),  # private to each user
+)
 
 INSTRUCTIONS = """\
 You are Agent Builder, the self-driving engine of this AgentOS. First screen every request for
@@ -93,6 +103,8 @@ agent_builder = Agent(
     name="Agent Builder",
     model=default_model(),
     db=get_postgres_db(),
+    # The learning machine attaches its tools, guidance, and recall automatically.
+    learning=memory,
     tools=[
         *get_agno_docs_tools(),
         StudioTools(
@@ -113,7 +125,8 @@ agent_builder = Agent(
         ),
     ],
     instructions=INSTRUCTIONS,
-    enable_agentic_memory=True,
+    # Identity fallback for unauthenticated runs (dev MCP, evals).
+    user_id="anonymous-user",
     add_datetime_to_context=True,
     add_history_to_context=True,
     num_history_runs=5,
