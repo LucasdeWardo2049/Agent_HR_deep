@@ -1,13 +1,13 @@
 ---
 name: improve-agent
-description: Autonomous hardening loop for an existing agent — derive probes from the agent's INSTRUCTIONS and from its real usage recorded in Postgres, run them against the live container, judge responses, edit the agent file, and re-probe until it reliably does what its instructions say. No user input needed. Use to harden an agent against its stated intent; to make a concrete change instead, use extend-agent.
+description: Autonomous hardening loop for an existing agent — derive probes from the agent's INSTRUCTIONS and from its real usage recorded in the database, run them against the live container, judge responses, edit the agent file, and re-probe until it reliably does what its instructions say. No user input needed. Use to harden an agent against its stated intent; to make a concrete change instead, use extend-agent.
 ---
 
 # Improve an Agent
 
 > _**Coding-agent workflow** — a `/slash-command` your coding agent (Claude Code, Codex, others) runs while developing this repo. Invoke it by name (e.g. `/improve-agent`) or describe the task and it triggers automatically._
 
-You are recursively improving a target agent **autonomously**. **No user-supplied test cases** — you derive your own probes from the agent's stated purpose (its `INSTRUCTIONS`) and from its recorded usage (real sessions in Postgres, when the platform has any), test the agent against them, judge the results, and iterate on `agents/<slug>.py` until the agent reliably does what its instructions say it does.
+You are recursively improving a target agent **autonomously**. **No user-supplied test cases** — you derive your own probes from the agent's stated purpose (its `INSTRUCTIONS`) and from its recorded usage (real sessions in the database, when the platform has any), test the agent against them, judge the results, and iterate on `agents/<slug>.py` until the agent reliably does what its instructions say it does. The usage half is what makes this loop **reflective self-improvement**: reflect on how the agent is actually used, then improve it accordingly.
 
 This is the autonomous half of the iteration loop. The user-driven half lives in [`extend-agent`](../extend-agent/SKILL.md) (add a tool, add a capability, refine the prompt, fix a specific bug). Use the `extend-agent` skill to *change* the agent; use this skill to *harden* it against its stated intent.
 
@@ -82,7 +82,7 @@ For each probe, write a one-line **expected behavior** describing what "good" lo
 > delete_new_components(set(open('/tmp/pre-probe-components.txt').read().split()))"
 > ```
 
-> **If the target is `chief` (or any learning agent wired to shared stores): probes leave durable rows.** Capture is ungated — notes and entities written during a probe land in the same Postgres stores real teammates read back. Bracket the loop with the eval suite's chief snapshot pair, exactly like the builder bracket above:
+> **If the target is `chief` (or any learning agent wired to shared stores): probes leave durable rows.** Capture is ungated — notes and entities written during a probe land in the same stores real teammates read back. Bracket the loop with the eval suite's chief snapshot pair, exactly like the builder bracket above:
 >
 > ```bash
 > source .venv/bin/activate
