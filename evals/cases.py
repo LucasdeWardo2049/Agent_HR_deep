@@ -68,7 +68,8 @@ def snapshot_chief_state() -> dict[str, set[str]]:
 
 def delete_new_chief_state(pre_run: dict[str, set[str]]) -> None:
     """Hard-deletes learnings (entities, profiles, memories) and notes that did not exist
-    before the case ran."""
+    before the case ran. Also used standalone by the improve-agent skill to bracket
+    probe loops against Chief."""
     for row in eval_db.get_learnings(limit=1000):
         if str(row["learning_id"]) not in pre_run["learning_ids"]:
             eval_db.delete_learning(str(row["learning_id"]))

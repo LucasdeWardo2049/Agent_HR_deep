@@ -50,12 +50,12 @@ db = get_postgres_db()
 # deserialize=False keeps the (rows, total) tuple shape and returns plain dicts
 sessions, _ = db.get_sessions(component_id="<slug>", limit=20, deserialize=False)
 asks = [run["input"]["input_content"] for s in sessions for run in (s.get("runs") or []) if run.get("input")]
-evals, _ = db.get_eval_runs(limit=20, deserialize=False)   # eval history — a recently failed case is a probe with its expected behavior already written
+evals, _ = db.get_eval_runs(agent_id="<slug>", limit=20, deserialize=False)   # eval history — a recently failed case is a probe with its expected behavior already written
 ```
 
 Skim the asks for three things: **recurring shapes** (the golden path as users actually phrase it), **visible fumbles** (read the run's output where something looks off — wrong tool, fabrication, wrong format; a recorded response is a *scenario*, never the oracle — the agent may have been wrong that day, and expected behavior still comes from `INSTRUCTIONS`), and **out-of-scope asks** (users requesting things `INSTRUCTIONS` never promised — probe how gracefully the agent declines today, and surface the gap in Step 8; it may be `extend-agent`'s next feature). Reword private content before it becomes a probe — real names, real decisions — because probes run against the live agent, and a learning agent like `chief` files what it's told. A fresh platform with no sessions is fine: instruction-derived probes are the floor, mining only adds.
 
-**Derive from `INSTRUCTIONS`.** Generate enough probes to meaningfully exercise the agent's stated capabilities — aim for **2-3 per distinct rule in `INSTRUCTIONS`, plus 2 adversarial probes**, folding mined asks into the categories they fit. Most agents in this repo land at 8-12. Cover four categories:
+**Derive from `INSTRUCTIONS`.** Generate enough probes to meaningfully exercise the agent's stated capabilities — aim for **2-3 per distinct rule in `INSTRUCTIONS`, plus 1-2 adversarial probes**, folding mined asks into the categories they fit. Most agents in this repo land at 8-12. Cover four categories:
 
 - **Golden path** (3-5): typical, in-scope questions the agent should handle well.
 - **Edge cases** (2-3): ambiguous, out-of-scope, or boundary questions. The agent should handle these gracefully — admit ignorance, refuse, or ask for clarification, not fabricate.
@@ -81,6 +81,28 @@ For each probe, write a one-line **expected behavior** describing what "good" lo
 > from evals.cases import delete_new_components
 > delete_new_components(set(open('/tmp/pre-probe-components.txt').read().split()))"
 > ```
+
+> **If the target is `chief` (or any learning agent wired to shared stores): probes leave durable rows.** Capture is ungated — notes and entities written during a probe land in the same Postgres stores real teammates read back. Bracket the loop with the eval suite's chief snapshot pair, exactly like the builder bracket above:
+>
+> ```bash
+> source .venv/bin/activate
+>
+> # once, before the first probe
+> python -c "
+> from dotenv import load_dotenv; load_dotenv()
+> import json
+> from evals.cases import snapshot_chief_state
+> print(json.dumps({k: sorted(v) for k, v in snapshot_chief_state().items()}))" > /tmp/pre-probe-chief.json
+>
+> # once, after the last probe — removes only the rows the probes created
+> python -c "
+> from dotenv import load_dotenv; load_dotenv()
+> import json
+> from evals.cases import delete_new_chief_state
+> delete_new_chief_state({k: set(v) for k, v in json.load(open('/tmp/pre-probe-chief.json')).items()})"
+> ```
+>
+> The diff removes rows the probes *created*; it cannot undo an edit *inside* a row that already existed — a probe that supersedes a real fact is unrecoverable. Two rules keep probes out of that path: give every probe fixture content no real team would have on file (distinctive invented names, projects, decisions — the eval suite's cases show the register), and never replay a mined ask verbatim — rewording it (the privacy rule above) is also what keeps it from colliding with the very row it came from.
 
 ## 3. Run the probes against the live agent
 
@@ -170,6 +192,7 @@ Summarize for the user:
 
 - N probes generated, M passed initially, K passed finally.
 - One line per accepted edit (which lever, what changed).
+- Out-of-scope asks surfaced by mining (Step 2) — real requests `INSTRUCTIONS` never promised; each is an [`extend-agent`](../extend-agent/SKILL.md) candidate.
 - `git diff agents/<slug>.py` (one short block).
 - Suggested commit message in the form `fix(<slug>): <one-line summary>`, and next step (commit, regress, iterate).
 
@@ -179,9 +202,9 @@ For a regression check across the committed eval suite, see [`eval-and-improve`]
 
 ## A worked example
 
-Target: `chief`. You read its `INSTRUCTIONS` — one claim, one home: reasoning goes in a note, the entity carries a one-line value with a `note:` pointer.
+Target: `chief`. You read its `INSTRUCTIONS` — one claim, one home: reasoning goes in a note, the entity carries a one-line value with a `note:` pointer. Chief is a learning agent, so you bracket the loop with the chief snapshot pair from Step 2 and keep every probe on fixture content.
 
-You generate 10 probes. One: *"we picked Postgres over Dynamo because the ops burden was lower — keep this."* Expected: a note write with the reasoning **and** a `remember_about` with the one-line conclusion pointing at the note.
+You generate 10 probes. One: *"we picked Quillbase over Marrowstone because the ops burden was lower — keep this."* Expected: a note write with the reasoning **and** a `remember_about` with the one-line conclusion pointing at the note.
 
 You probe. Container logs show the agent called `remember_about` with the full rationale crammed into a fact, and never touched the notes. The "why" now lives where only one line should. **FAIL.**
 
