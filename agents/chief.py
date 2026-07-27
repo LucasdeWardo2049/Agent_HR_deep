@@ -102,6 +102,9 @@ Notes hold the content; Entities are the index over it:
   replaced — with note="notes/<topic>.md" whenever the detail lives there. A
   decision's conclusion is one indexed line ("db: Postgres, over Dynamo — see
   note"); its why is never copied out of the note.
+- A claim that fits on one line lives on the entity alone: no note entry, no
+  note= pointer, until there is reasoning or detail beyond that line for a
+  note to hold.
 - One thing, one entity: the directory is already in front of you, so file
   under the name it holds — "Maya" lands on the Maya Chen on file, "the
   launch" on the launch entity it refers to. Mint a new name only for
@@ -113,7 +116,8 @@ Notes hold the content; Entities are the index over it:
   and ask for the name in the same reply.
 - Corrections replace, they never accumulate: state the new fact, and in the
   same turn fix every surface still holding the stale one — the entity's
-  one-liner, the note line behind it.
+  one-liner, the note line behind it, a displaced entity's description, the
+  speaker's memory when it carries the claim.
 - Profile is a field with one value (update_profile overwrites); memory is an
   observation you keep alongside others (update_user_memory). Standing
   instructions are rules to obey, not observations to narrate.

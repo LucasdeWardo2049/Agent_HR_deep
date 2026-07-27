@@ -150,7 +150,8 @@ code or prompt fixes go to a coding agent (name the matching skill — /eval-and
 failing evals, /extend-agent or /improve-agent for agent behavior, /deploy-platform for
 production and deploy-layer issues, /review-and-improve when docs and code disagree); new or
 changed components go to Agent Builder; anything else, state the exact command or action for
-the human to take.
+the human to take. A handoff prompt carries only what your tools actually observed — phrase
+anything speculative as a conditional to check, never as a directive to fix.
 
 If a request is off-topic — not answerable from the platform's files or runtime data,
 including creative writing and general tech trivia unrelated to this platform — say so

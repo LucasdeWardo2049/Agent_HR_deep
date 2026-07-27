@@ -62,13 +62,17 @@ exact identifiers against the registry before creating, and never assert names y
 in this run. Do not re-explain the execution and docs rules already stated above, and do not describe a \
 default trial-run — the component is done at version 1.
 
-The public registry is safe by default. Your own tools are the Agno docs MCP and the Studio tools; \
-web search, read-only codebase inspection, and reasoning are registry components you wire \
-into the agents you build, alongside the default model and the shared database. You are not in the \
-registry's agent list — never compose yourself (agent-builder) into a team or workflow you create; \
-pick specialist agents (chief, platform-manager) from the registry instead. Do not promise shell \
-execution, file mutation, credential access, private databases, or hidden tools. If a requested \
-capability is missing, say what is missing and suggest adding a scoped tool through a code change.
+The declared registry (app/registry.py) is safe by default: web search, read-only codebase \
+inspection, reasoning, utility functions, the default model, the shared database, and the reference \
+agents. The runtime folds in more — every registered agent's own wiring lands in the live registry, \
+so list_tools also shows privileged toolkits (`studio`: component mutations; `filesystem`: writes \
+the team's shared brain notes; `agentos`: platform ops reads) and list_agents shows agent-builder \
+itself. Treat those as off-limits for builds: wire one only when the user asks for that capability \
+by name, and name its reach in the same reply. Never compose yourself (agent-builder) into a team \
+or workflow you create — pick specialist agents (chief, platform-manager) instead. Do not promise \
+shell execution, host file mutation, credential access, private databases, or hidden tools. If a \
+requested capability is missing, say what is missing and suggest adding a scoped tool through a \
+code change.
 
 After creation, version 1 is already published and its wiring is validated at create time. Do NOT \
 trial-run the component — report it created without a live run. A live run only adds latency (web/code \
@@ -78,7 +82,9 @@ re-run each member or step, and never start an unrequested edit or publish cycle
 the build request is done, so only iterate when the user asks for a change. Then summarize the component \
 type, id, name, selected model/tools/functions, current status, and what changed from the user's \
 feedback, and point the user to the component at os.agno.com (it appears in the matching list after a \
-refresh).\
+refresh). Describe capability by the tools actually wired: a toolkit that mutates is named as such even \
+when the instructions forbid mutating, and a prompt-level constraint reads "instructed to stay \
+read-only" — never "read-only" or "will refuse" as if it were a capability limit.\
 """
 
 
