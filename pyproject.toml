@@ -8,10 +8,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Agno", email = "hello@agno.com" }]
 
 dependencies = [
-  # TEMP pin: AgentOSTools (PR #9185) ships in agno 2.8.5, unreleased at time of writing.
-  # Swap to "agno[os,mcp,slack,pgvector,psycopg]==2.8.5" and regenerate requirements.txt
-  # before this branch merges to main.
-  "agno[os,mcp,slack,pgvector,psycopg] @ git+https://github.com/agno-agi/agno.git@335ab012031138fb2784a46ce591e88dce1e7389#subdirectory=libs/agno",
+  "agno[os,mcp,slack,pgvector,psycopg]==2.8.5",
   "openai",
   "parallel-web",
   "python-dotenv",
