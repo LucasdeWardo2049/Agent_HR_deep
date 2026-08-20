@@ -10,7 +10,14 @@ from app.schemas import (
     ResumeFile,
 )
 from app.settings import Settings
-from app.talent import TalentService, extract_pdf_text, is_extraction_usable, normalize_assessment, profile_cache_hash
+from app.talent import (
+    TalentSearchProgressEvent,
+    TalentService,
+    extract_pdf_text,
+    is_extraction_usable,
+    normalize_assessment,
+    profile_cache_hash,
+)
 from tests.fakes import FakeFallback, FakeStore, FakeWorkspace, QueueGenerator
 
 
@@ -49,6 +56,38 @@ async def test_unchanged_file_is_not_processed() -> None:
     assert stats.processed == 0
     assert generator.calls == []
     assert fallback.calls == 0
+
+
+async def test_unchanged_drive_modified_time_skips_the_download() -> None:
+    file = ResumeFile(
+        drive_file_id="cv-fast",
+        file_name="cached.docx",
+        mime_type=DOCX_MIME,
+        modified_time="2026-08-20T10:00:00Z",
+    )
+    store = FakeStore()
+    store.hashes[file.drive_file_id] = profile_cache_hash(file.modified_time or "")
+    workspace = FakeWorkspace([file])
+    service = TalentService(
+        store=store,
+        workspace=workspace,
+        local_llm=QueueGenerator({}),
+        pdf_fallback=FakeFallback(CandidateProfile()),
+        settings=_settings(),
+    )
+
+    stats = await service.sync_profiles()
+
+    assert stats.skipped == 1
+    assert workspace.download_calls == []
+
+
+def test_progress_event_does_not_pollute_the_final_tool_result() -> None:
+    event = TalentSearchProgressEvent(phase="syncing_resumes", label="Sincronizando currículos")
+
+    assert event.event == "CustomEvent"
+    assert event.to_dict()["phase"] == "syncing_resumes"
+    assert str(event) == ""
 
 
 def test_pdf_extraction_quality_detects_good_and_bad_text() -> None:

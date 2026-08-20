@@ -155,3 +155,31 @@ async def test_job_research_never_constructs_google_workspace() -> None:
 
     assert result.status == "completed"
     assert calls == ["UX designer"]
+
+
+@pytest.mark.asyncio
+async def test_equal_research_requests_are_coalesced_and_cached() -> None:
+    call_count = 0
+
+    async def primary(_: str) -> list[ResearchSource]:
+        nonlocal call_count
+        call_count += 1
+        await asyncio.sleep(0.01)
+        return [source(1), source(2), source(3)]
+
+    async def unused_fallback(_: str) -> list[ResearchSource]:
+        raise AssertionError("fallback should not run")
+
+    service = JobProfileResearchService(
+        settings(),
+        composio_search=primary,
+        serpapi_search=unused_fallback,
+    )
+    first, second = await asyncio.gather(
+        service.research("Engenheiro de dados"),
+        service.research("engenheiro de dados"),
+    )
+    third = await service.research("Engenheiro de dados")
+
+    assert first.status == second.status == third.status == "completed"
+    assert call_count == 1
