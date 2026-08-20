@@ -56,6 +56,8 @@ PROFILE_PIPELINE_VERSION = "professional-profile-v2"
 
 
 class Store(Protocol):
+    def get_existing_metadata(self, drive_file_ids: list[str]) -> dict[str, dict[str, str | None]]: ...
+
     def get_source_hash(self, drive_file_id: str) -> str | None: ...
 
     def get_candidate_id(self, drive_file_id: str) -> str | None: ...
@@ -154,8 +156,9 @@ def sha256_bytes(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def profile_cache_hash(content: bytes) -> str:
-    payload = PROFILE_PIPELINE_VERSION.encode("utf-8") + b"\0" + content
+def profile_cache_hash(source: bytes | str) -> str:
+    marker = source if isinstance(source, bytes) else f"modified:{source}".encode()
+    payload = PROFILE_PIPELINE_VERSION.encode("utf-8") + b"\0" + marker
     return sha256_bytes(payload)
 
 
@@ -242,13 +245,17 @@ class TalentService:
             drive_file_ids={file.drive_file_id for file in files},
         )
         await _emit_progress(progress, "syncing_resumes", "Sincronizando currículos", 0, len(files))
+        drive_file_ids = [file.drive_file_id for file in files]
+        existing_metadata = await asyncio.to_thread(self.store.get_existing_metadata, drive_file_ids)
+
         for index, file in enumerate(files, start=1):
             started = asyncio.get_running_loop().time()
             try:
-                content = await self.workspace.download_resume(file)
-                source_hash = profile_cache_hash(content)
-                existing_hash = await asyncio.to_thread(self.store.get_source_hash, file.drive_file_id)
-                if source_hash == existing_hash:
+                file_metadata = existing_metadata.get(file.drive_file_id, {})
+                existing_hash = file_metadata.get("source_hash")
+                source_hash = profile_cache_hash(file.modified_time) if file.modified_time else None
+
+                if source_hash is not None and source_hash == existing_hash:
                     await asyncio.to_thread(
                         self.store.update_source_metadata,
                         drive_file_id=file.drive_file_id,
@@ -258,8 +265,21 @@ class TalentService:
                     )
                     stats.skipped += 1
                     continue
+                content = await self.workspace.download_resume(file)
+                if source_hash is None:
+                    source_hash = profile_cache_hash(content)
+                    if source_hash == existing_hash:
+                        await asyncio.to_thread(
+                            self.store.update_source_metadata,
+                            drive_file_id=file.drive_file_id,
+                            file_name=file.file_name,
+                            mime_type=file.mime_type,
+                            drive_url=file.drive_url,
+                        )
+                        stats.skipped += 1
+                        continue
                 profile, provider, fallback_used = await self._parse_resume(file, content)
-                candidate_id = await asyncio.to_thread(self.store.get_candidate_id, file.drive_file_id)
+                candidate_id = file_metadata.get("candidate_id")
                 profile = normalize_candidate_profile(profile).model_copy(
                     update={
                         "candidate_id": candidate_id or f"candidate_{uuid4().hex}",

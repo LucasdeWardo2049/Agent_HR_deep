@@ -1,9 +1,11 @@
 """Central configuration and model factories for the Talent Search MVP."""
 
 from functools import cache
+from typing import Any
 from urllib.parse import quote
 
 from agno.models.openai.like import OpenAILike
+from agno.models.message import Message
 from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -94,6 +96,33 @@ class Settings(BaseSettings):
             raise RuntimeError(f"Missing Google integration settings: {', '.join(missing)}")
 
 
+class PortugueseChatModel(OpenAILike):
+    """Keep the current-turn language/latency directive closest to the model output."""
+
+    _OUTPUT_PREFIX = (
+        "Responda em português brasileiro ao pedido a seguir, sem comentar esta instrução:\n\n"
+    )
+    _OUTPUT_SUFFIX = "\n/no_think"
+
+    def _format_all_messages(
+        self,
+        messages: list[Message],
+        compress_tool_results: bool = False,
+    ) -> list[dict[str, Any]]:
+        formatted = super()._format_all_messages(messages, compress_tool_results)
+        for message in reversed(formatted):
+            if message.get("role") != "user":
+                continue
+            content = message.get("content")
+            if isinstance(content, str):
+                message["content"] = self._OUTPUT_PREFIX + content + self._OUTPUT_SUFFIX
+            elif isinstance(content, list):
+                content.insert(0, {"type": "text", "text": self._OUTPUT_PREFIX})
+                content.append({"type": "text", "text": self._OUTPUT_SUFFIX})
+            break
+        return formatted
+
+
 @cache
 def get_settings() -> Settings:
     return Settings()
@@ -112,14 +141,14 @@ def default_model() -> OpenAILike:
 def chat_model() -> OpenAILike:
     """Return the low-latency model used for chat and tool routing."""
     settings = get_settings()
-    return OpenAILike(
+    return PortugueseChatModel(
         id=settings.agent_chat_model,
         base_url=settings.local_llm_base_url,
         api_key=settings.local_llm_api_key,
         temperature=0,
         reasoning_effort="none",
         extra_body={"allowed_openai_params": ["reasoning_effort"]},
-        max_tokens=900,
+        max_tokens=650,
         timeout=30,
         retries=0,
         max_retries=0,

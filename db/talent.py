@@ -137,16 +137,19 @@ class TalentStore:
     def get_existing_metadata(self, drive_file_ids: list[str]) -> dict[str, dict[str, str | None]]:
         if not drive_file_ids:
             return {}
-        
+
         placeholders = ", ".join(f":id_{i}" for i in range(len(drive_file_ids)))
         params = {f"id_{i}": file_id for i, file_id in enumerate(drive_file_ids)}
-        
+
         with get_engine().connect() as connection:
             rows = connection.execute(
-                text(f"SELECT drive_file_id, source_hash, candidate_id FROM talent_profiles WHERE drive_file_id IN ({placeholders})"),
+                text(
+                    "SELECT drive_file_id, source_hash, candidate_id "
+                    f"FROM talent_profiles WHERE drive_file_id IN ({placeholders})"
+                ),
                 params,
             ).mappings().all()
-            
+
         return {
             str(row["drive_file_id"]): {
                 "source_hash": str(row["source_hash"]) if row["source_hash"] else None,

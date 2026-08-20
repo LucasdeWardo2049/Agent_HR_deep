@@ -19,6 +19,16 @@ class FakeStore:
         profile = self.profiles.get(drive_file_id)
         return profile.candidate_id if profile else None
 
+    def get_existing_metadata(self, drive_file_ids: list[str]) -> dict[str, dict[str, str | None]]:
+        return {
+            drive_file_id: {
+                "source_hash": self.hashes.get(drive_file_id),
+                "candidate_id": self.get_candidate_id(drive_file_id),
+            }
+            for drive_file_id in drive_file_ids
+            if drive_file_id in self.hashes or drive_file_id in self.profiles
+        }
+
     def upsert_profile(
         self,
         *,

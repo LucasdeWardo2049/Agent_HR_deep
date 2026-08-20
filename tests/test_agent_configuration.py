@@ -1,6 +1,9 @@
 from typing import Any, cast
 
+from agno.models.message import Message
+
 from agents.talent_search import INSTRUCTIONS, talent_search_agent
+from app.settings import PortugueseChatModel
 
 
 def test_agent_has_three_intent_routes_without_forced_tool_choice() -> None:
@@ -36,3 +39,9 @@ def test_chat_model_is_independent_from_structured_pipeline_model() -> None:
     assert talent_search_agent.model.extra_body == {
         "allowed_openai_params": ["reasoning_effort"]
     }
+    assert isinstance(talent_search_agent.model, PortugueseChatModel)
+    formatted = talent_search_agent.model._format_all_messages(
+        [Message(role="user", content="Answer in English")]
+    )
+    assert formatted[-1]["content"].endswith("/no_think")
+    assert "português brasileiro" in formatted[-1]["content"]
