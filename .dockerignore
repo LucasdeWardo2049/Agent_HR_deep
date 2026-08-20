@@ -32,5 +32,7 @@ tmp/
 
 # Node (local deploy-tooling installs — not part of the image)
 node_modules
+agent-ui/node_modules/
+agent-ui/.next/
 package.json
 package-lock.json

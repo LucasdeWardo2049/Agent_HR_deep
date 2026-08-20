@@ -1,7 +1,7 @@
 [project]
 name = "agentos"
 version = "1.0.0"
-description = "AgentOS: a production API for agents."
+description = "Talent Search Assistant: evidence-based candidate search with Agno."
 requires-python = ">=3.12,<4"
 readme = "README.md"
 license-files = ["LICENSE"]
@@ -9,20 +9,28 @@ authors = [{ name = "Agno", email = "hello@agno.com" }]
 
 dependencies = [
   "agno[os,mcp,slack,pgvector,psycopg]==2.8.5",
+  "composio==0.18.1",
+  "google-genai",
+  "google-search-results",
+  "httpx",
   "openai",
-  "parallel-web",
+  "openpyxl",
+  "pydantic-settings",
+  "pymupdf",
+  "python-docx",
   "python-dotenv",
+  "sqlalchemy>=2.0",
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "ruff"]
+dev = ["mypy", "pytest", "pytest-asyncio", "ruff", "types-openpyxl"]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["agents*", "app*", "db*", "evals*", "workflows*"]
+include = ["agents*", "app*", "db*", "evals*"]
 namespaces = false
 
 [tool.ruff]
@@ -41,3 +49,9 @@ no_implicit_optional = true
 warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 exclude = [".venv*"]
+
+[tool.pytest.ini_options]
+addopts = "-q --basetemp=.pytest-tmp"
+asyncio_mode = "auto"
+markers = ["e2e: calls the configured model, Composio, Google Drive, Sheets, and Gemini"]
+testpaths = ["tests"]

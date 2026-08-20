@@ -11,6 +11,11 @@ services:
       POSTGRES_USER: ${DB_USER:-ai}
       POSTGRES_PASSWORD: ${DB_PASS:-ai}
       POSTGRES_DB: ${DB_DATABASE:-ai}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ai} -d ${DB_DATABASE:-ai}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       - agentos
 
@@ -23,7 +28,7 @@ services:
     # --reload-dir limits the watcher to dirs that contain runtime code.
     command: >
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-      --reload-dir agents --reload-dir app --reload-dir db --reload-dir evals --reload-dir workflows
+      --reload-dir agents --reload-dir app --reload-dir db --reload-dir evals
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -36,14 +41,20 @@ services:
       RUNTIME_ENV: dev
       AGNO_DEBUG: "True"
       WAIT_FOR_DB: "True"
-      AGENTOS_URL: http://127.0.0.1:8000
+      AGENTOS_URL: ${AGENTOS_URL:-http://localhost:8000}
       DB_HOST: agentos-db
       DB_PORT: 5432
       DB_USER: ${DB_USER:-ai}
       DB_PASS: ${DB_PASS:-ai}
       DB_DATABASE: ${DB_DATABASE:-ai}
     depends_on:
-      - agentos-db
+      agentos-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 6s
+      retries: 12
     networks:
       - agentos
     extra_hosts:

@@ -5,9 +5,9 @@
 #    MCP Smoke Check
 #
 #    Proves the AgentOS MCP endpoint end to end: handshake, tool count,
-#    then one run_agent call. The default question tells the agent to skip
-#    its tools, so the whole check finishes in seconds. Runs the client
-#    inside the container.
+#    then one run_agent call. The default request is intentionally ambiguous,
+#    so the talent agent proves its clarification path without accessing Drive.
+#    Runs the client inside the container.
 #
 #    When /mcp is auth-gated (MCP_CONNECT_SECRET set, or prd JWT), the
 #    check mints a short-lived probe service account, runs authenticated,
@@ -15,7 +15,7 @@
 #
 #    Usage:
 #      ./scripts/mcp_check.sh                            # quick default probe
-#      ./scripts/mcp_check.sh "What does chief do?"      # your own question
+#      ./scripts/mcp_check.sh "Procuro uma pessoa de dados" # your own request
 #
 ############################################################################
 
@@ -28,7 +28,7 @@ DIM='\033[2m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-DEFAULT_QUESTION="Without using any tools, introduce yourself and this platform in two short sentences."
+DEFAULT_QUESTION="Estou buscando alguém."
 QUESTION="${1:-$DEFAULT_QUESTION}"
 
 echo ""
@@ -65,11 +65,11 @@ async def run_check(headers: dict | None, auth_note: str) -> None:
             start = time.perf_counter()
             result = await session.call_tool(
                 "run_agent",
-                {"agent_id": "platform-manager", "message": sys.argv[1]},
+                {"agent_id": "talent-search", "message": sys.argv[1]},
                 read_timeout_seconds=None,
             )
             elapsed = time.perf_counter() - start
-            step(f"run_agent — platform-manager answered in {elapsed:.1f}s")
+            step(f"run_agent — talent-search answered in {elapsed:.1f}s")
             # run_agent returns a trimmed ToolResult: content[0].text is the plain
             # answer, and structuredContent carries {run_id, session_id, status}.
             print(flush=True)

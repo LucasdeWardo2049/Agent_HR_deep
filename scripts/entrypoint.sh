@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 ############################################################################
 #
 #    Agno Container Entrypoint
@@ -28,6 +30,8 @@ if [[ "$WAIT_FOR_DB" = true || "$WAIT_FOR_DB" = True ]]; then
     echo -e "    ${DIM}Waiting for database at ${DB_HOST}:${DB_PORT}...${NC}"
     dockerize -wait tcp://$DB_HOST:$DB_PORT -timeout 300s
     echo -e "    ${BOLD}Database ready.${NC}"
+    python -c "from db import init_talent_tables; init_talent_tables()"
+    echo -e "    ${BOLD}Talent tables ready.${NC}"
     echo ""
 fi
 

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Talent Search</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --bg: #0d0d0f;
+        --sidebar: #111114;
+        --surface: #17171b;
+        --surface-2: #202026;
+        --line: rgba(255, 255, 255, .09);
+        --text: #f4f4f5;
+        --muted: #a0a0aa;
+        --subtle: #74747e;
+        --accent: #ff5a67;
+        --accent-soft: rgba(255, 90, 103, .12);
+        --success: #43d6a2;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; overflow: hidden; color: var(--text); background: var(--bg); font-size: 14px; }
+      button, textarea { font: inherit; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+      [hidden] { display: none !important; }
+      .app { height: 100%; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
+      .sidebar { min-width: 0; display: flex; flex-direction: column; padding: 18px 12px; border-right: 1px solid var(--line); background: var(--sidebar); }
+      .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 20px; font-weight: 700; letter-spacing: -.01em; }
+      .brand-mark, .avatar { display: grid; place-items: center; flex: 0 0 auto; color: white; background: linear-gradient(145deg, #ff6a73, #d93455); }
+      .brand-mark { width: 30px; height: 30px; border-radius: 9px; box-shadow: 0 8px 24px rgba(255, 73, 96, .18); }
+      .brand-mark svg { width: 17px; }
+      .new-chat { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); cursor: pointer; transition: background .18s, border-color .18s; }
+      .new-chat:hover { border-color: rgba(255,255,255,.16); background: var(--surface-2); }
+      .new-chat svg { width: 16px; }
+      .nav-label { margin: 25px 10px 9px; color: var(--subtle); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+      .thread { display: block; overflow: hidden; padding: 9px 11px; border-radius: 8px; color: #d2d2d7; background: var(--surface); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+      .sidebar-foot { margin-top: auto; padding: 14px 9px 2px; border-top: 1px solid var(--line); }
+      .runtime { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
+      .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(67,214,162,.09); }
+      .runtime.offline .status-dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+      .runtime small { display: block; margin-top: 2px; color: var(--subtle); font-size: 9px; }
+      .chat { min-width: 0; height: 100%; display: grid; grid-template-rows: 62px minmax(0, 1fr) auto; }
+      .chat-header { display: flex; align-items: center; gap: 11px; padding: 0 24px; border-bottom: 1px solid var(--line); background: rgba(13,13,15,.86); backdrop-filter: blur(16px); }
+      .chat-header .avatar { width: 30px; height: 30px; border-radius: 9px; }
+      .chat-header .avatar svg { width: 16px; }
+      .agent-name { margin: 0; font-size: 13px; font-weight: 700; }
+      .agent-state { display: flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--subtle); font-size: 10px; }
+      .agent-state::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
+      .messages { overflow-y: auto; scroll-behavior: smooth; }
+      .conversation { width: min(760px, calc(100% - 36px)); margin: 0 auto; padding: 44px 0 22px; }
+      .welcome { max-width: 620px; margin: 9vh auto 40px; text-align: center; }
+      .welcome-icon { width: 54px; height: 54px; display: grid; place-items: center; margin: 0 auto 20px; border: 1px solid rgba(255,90,103,.22); border-radius: 17px; color: #ff8a92; background: var(--accent-soft); }
+      .welcome-icon svg { width: 25px; }
+      .welcome h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); line-height: 1.2; letter-spacing: -.035em; }
+      .welcome p { max-width: 520px; margin: 12px auto 24px; color: var(--muted); line-height: 1.65; }
+      .suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+      .suggestion { padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; color: #c8c8ce; background: transparent; font-size: 11px; cursor: pointer; }
+      .suggestion:hover { border-color: rgba(255,90,103,.35); color: var(--text); background: var(--accent-soft); }
+      .message { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; margin: 0 0 28px; animation: arrive .22s ease-out; }
+      @keyframes arrive { from { opacity: 0; transform: translateY(5px); } }
+      .message .avatar { width: 32px; height: 32px; border-radius: 10px; }
+      .message .avatar svg { width: 17px; }
+      .message.user { grid-template-columns: minmax(0, 1fr); justify-items: end; }
+      .message.user .bubble { max-width: min(620px, 88%); padding: 12px 15px; border-radius: 16px 16px 4px 16px; background: var(--surface-2); }
+      .message.assistant .bubble { min-width: 0; padding-top: 5px; }
+      .message p { margin: 0; line-height: 1.7; white-space: pre-wrap; }
+      .assistant-meta { margin-top: 8px; color: var(--subtle); font-size: 11px; }
+      .thinking { display: flex; align-items: center; gap: 9px; color: var(--muted); }
+      .thinking-dots { display: inline-flex; gap: 3px; }
+      .thinking-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 1.1s infinite ease-in-out; }
+      .thinking-dots i:nth-child(2) { animation-delay: .15s; }
+      .thinking-dots i:nth-child(3) { animation-delay: .3s; }
+      @keyframes pulse { 0%, 70%, 100% { opacity: .25; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-3px); } }
+      .files { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+      .file-card { min-width: 0; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--text); background: var(--surface); text-decoration: none; transition: transform .18s, border-color .18s, background .18s; }
+      .file-card:hover { transform: translateY(-1px); border-color: rgba(255,90,103,.35); background: var(--surface-2); }
+      .file-icon { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; color: var(--success); background: rgba(67,214,162,.1); }
+      .file-card.xlsx .file-icon { color: #8fa8ff; background: rgba(111,138,255,.11); }
+      .file-icon svg { width: 18px; }
+      .file-copy { min-width: 0; flex: 1; }
+      .file-copy strong { display: block; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+      .file-copy span { display: block; margin-top: 2px; color: var(--subtle); font-size: 9px; }
+      .file-action { flex: 0 0 auto; color: var(--subtle); }
+      .file-action svg { width: 15px; }
+      .warnings { margin-top: 14px; padding: 11px 13px; border-left: 2px solid var(--accent); border-radius: 4px 9px 9px 4px; color: #d8a1a6; background: var(--accent-soft); font-size: 11px; }
+      .error-text { color: #ff9da5; }
+      .composer-wrap { padding: 12px 24px 20px; background: linear-gradient(180deg, transparent, var(--bg) 30%); }
+      .composer { width: min(760px, 100%); margin: 0 auto; }
+      .composer-box { padding: 10px 10px 8px 15px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: var(--surface); box-shadow: 0 14px 50px rgba(0,0,0,.22); transition: border-color .18s, box-shadow .18s; }
+      .composer-box:focus-within { border-color: rgba(255,90,103,.4); box-shadow: 0 14px 50px rgba(0,0,0,.25), 0 0 0 3px rgba(255,90,103,.07); }
+      textarea { width: 100%; max-height: 170px; min-height: 45px; resize: none; padding: 5px 44px 3px 0; border: 0; outline: 0; color: var(--text); background: transparent; line-height: 1.5; }
+      textarea::placeholder { color: var(--subtle); }
+      .composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .composer-note { color: var(--subtle); font-size: 9px; }
+      .send { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 10px; color: white; background: var(--accent); cursor: pointer; transition: transform .18s, opacity .18s; }
+      .send:hover { transform: translateY(-1px); }
+      .send:disabled { opacity: .4; cursor: wait; transform: none; }
+      .send svg { width: 16px; }
+      .disclaimer { margin: 8px 0 0; color: #62626b; font-size: 9px; text-align: center; }
+      @media (max-width: 760px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } .chat-header { padding-inline: 16px; } .conversation { width: min(100% - 26px, 760px); padding-top: 26px; } .welcome { margin-top: 6vh; } .files { grid-template-columns: 1fr; } .composer-wrap { padding: 10px 12px 14px; } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.8-3.4 2.6-5 5.5-5s4.7 1.6 5.5 5M16 8h5M18.5 5.5v5"/></svg></span>Talent Search</div>
+        <button id="new-chat" class="new-chat" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nova conversa</button>
+        <p class="nav-label">Hoje</p>
+        <span id="thread-title" class="thread">Nova busca de talentos</span>
+        <div class="sidebar-foot"><div id="runtime" class="runtime"><span class="status-dot"></span><div>AgentOS local<small>gpt-oss-120b</small></div></div></div>
+      </aside>
+      <section class="chat">
+        <header class="chat-header"><span class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.8-3.4 2.6-5 5.5-5s4.7 1.6 5.5 5M16 8h5M18.5 5.5v5"/></svg></span><div><p class="agent-name">Talent Search Assistant</p><span class="agent-state">Pronto para analisar</span></div></header>
+        <main id="messages" class="messages" aria-live="polite">
+          <div id="conversation" class="conversation">
+            <section id="welcome" class="welcome">
+              <div class="welcome-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 7.2v5.6c0 4.2 3.2 7.2 7.5 8.2 4.3-1 7.5-4 7.5-8.2V7.2L12 3Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+              <h1>Quem você procura?</h1>
+              <p>Descreva a vaga e receba uma análise baseada em evidências, com os relatórios anexados à conversa.</p>
+              <div class="suggestions"><button class="suggestion" type="button">Python, FastAPI e PostgreSQL</button><button class="suggestion" type="button">Analista de dados com SQL</button><button class="suggestion" type="button">Product Manager sênior</button></div>
+            </section>
+          </div>
+        </main>
+        <div class="composer-wrap">
+          <form id="composer-form" class="composer">
+            <div class="composer-box">
+              <textarea id="description" name="description" minlength="3" rows="1" required aria-label="Descrição da vaga" placeholder="Descreva a vaga, requisitos obrigatórios e desejáveis..."></textarea>
+              <div class="composer-bottom"><span class="composer-note">Enter para enviar · Shift+Enter para quebrar linha</span><button id="send" class="send" type="submit" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg></button></div>
+            </div>
+            <p class="disclaimer">Sem ranking ou decisão automática. Confirme as evidências antes de avançar.</p>
+          </form>
+        </div>
+      </section>
+    </div>
+    <script>
+      const form = document.querySelector("#composer-form");
+      const input = document.querySelector("#description");
+      const send = document.querySelector("#send");
+      const messages = document.querySelector("#messages");
+      const conversation = document.querySelector("#conversation");
+      const welcome = document.querySelector("#welcome");
+      const runtime = document.querySelector("#runtime");
+      const threadTitle = document.querySelector("#thread-title");
+      const newChat = document.querySelector("#new-chat");
+      const assistantIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.8-3.4 2.6-5 5.5-5s4.7 1.6 5.5 5M16 8h5M18.5 5.5v5"/></svg>';
+      const fileIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>';
+      const actionIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>';
+      let pending = false;
+
+      const observer = new MutationObserver(scrollToBottom);
+      observer.observe(messages, { childList: true, subtree: true, characterData: true });
+
+      function scrollToBottom() { messages.scrollTop = messages.scrollHeight; }
+      function resizeInput() { input.style.height = "auto"; input.style.height = `${Math.min(input.scrollHeight, 170)}px`; }
+      function addUserMessage(text) {
+        const item = document.createElement("article"); item.className = "message user";
+        const bubble = document.createElement("div"); bubble.className = "bubble";
+        const copy = document.createElement("p"); copy.textContent = text;
+        bubble.append(copy); item.append(bubble); conversation.append(item);
+      }
+      function addPendingAssistant() {
+        const item = document.createElement("article"); item.className = "message assistant";
+        item.innerHTML = `<span class="avatar" aria-hidden="true">${assistantIcon}</span><div class="bubble"><div class="thinking"><span class="thinking-dots"><i></i><i></i><i></i></span><span class="thinking-label">Interpretando a vaga</span></div></div>`;
+        conversation.append(item);
+        const label = item.querySelector(".thinking-label");
+        const stages = ["Sincronizando currículos", "Analisando evidências", "Preparando os arquivos"];
+        let stage = 0;
+        item.stageTimer = window.setInterval(() => { label.textContent = stages[Math.min(stage++, stages.length - 1)]; }, 7000);
+        return item;
+      }
+      function createFileCard(url, title, meta, kind) {
+        const link = document.createElement("a"); link.className = `file-card ${kind}`; link.href = url; link.target = "_blank"; link.rel = "noopener";
+        link.innerHTML = `<span class="file-icon">${fileIcon}</span><span class="file-copy"><strong></strong><span></span></span><span class="file-action">${actionIcon}</span>`;
+        link.querySelector("strong").textContent = title; link.querySelector(".file-copy span").textContent = meta; return link;
+      }
+      function renderAssistant(item, payload) {
+        window.clearInterval(item.stageTimer);
+        const bubble = item.querySelector(".bubble"); bubble.replaceChildren();
+        const copy = document.createElement("p"); copy.textContent = payload.message; bubble.append(copy);
+        if (payload.status === "completed") {
+          const meta = document.createElement("div"); meta.className = "assistant-meta";
+          meta.textContent = `${payload.candidates_analyzed} perfil${payload.candidates_analyzed === 1 ? "" : "is"} analisado${payload.candidates_analyzed === 1 ? "" : "s"} · ordem alfabética`; bubble.append(meta);
+        }
+        if (payload.google_sheet_url || payload.excel_url) {
+          const files = document.createElement("div"); files.className = "files";
+          if (payload.google_sheet_url) files.append(createFileCard(payload.google_sheet_url, "Relatório no Google Sheets", "Abrir no navegador", "sheet"));
+          if (payload.excel_url) files.append(createFileCard(payload.excel_url, "Relatório completo.xlsx", "Baixar arquivo", "xlsx"));
+          bubble.append(files);
+        }
+        if (payload.warnings?.length) {
+          const warnings = document.createElement("div"); warnings.className = "warnings";
+          warnings.textContent = `${payload.warnings.length} aviso${payload.warnings.length === 1 ? "" : "s"}: ${payload.warnings.join(" · ")}`; bubble.append(warnings);
+        }
+      }
+      function renderError(item, error) {
+        window.clearInterval(item.stageTimer); const bubble = item.querySelector(".bubble"); bubble.replaceChildren();
+        const copy = document.createElement("p"); copy.className = "error-text"; copy.textContent = error.message || "Não foi possível concluir a busca."; bubble.append(copy);
+      }
+      function resetConversation() {
+        [...conversation.children].forEach((child) => { if (child !== welcome) child.remove(); });
+        welcome.hidden = false; threadTitle.textContent = "Nova busca de talentos"; input.value = ""; resizeInput(); input.focus();
+      }
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault(); const description = input.value.trim(); if (pending || description.length < 3) return;
+        pending = true; send.disabled = true; welcome.hidden = true;
+        threadTitle.textContent = description.length > 34 ? `${description.slice(0, 34)}…` : description;
+        addUserMessage(description); const assistant = addPendingAssistant(); input.value = ""; resizeInput(); scrollToBottom();
+        try {
+          const response = await fetch("/api/v1/talent/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description }) });
+          const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || "Falha ao executar a busca."); renderAssistant(assistant, payload);
+        } catch (error) { renderError(assistant, error); }
+        finally { pending = false; send.disabled = false; input.focus(); scrollToBottom(); }
+      });
+      input.addEventListener("input", resizeInput);
+      input.addEventListener("keydown", (event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); form.requestSubmit(); } });
+      document.querySelectorAll(".suggestion").forEach((button) => button.addEventListener("click", () => { input.value = button.textContent; resizeInput(); input.focus(); }));
+      newChat.addEventListener("click", resetConversation);
+      fetch("/health").then((response) => { if (!response.ok) throw new Error(); }).catch(() => { runtime.classList.add("offline"); runtime.querySelector("div").childNodes[0].textContent = "AgentOS indisponível"; });
+      resizeInput();
+    </script>
+  </body>
+</html>
