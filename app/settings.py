@@ -148,7 +148,7 @@ def chat_model() -> OpenAILike:
         temperature=0,
         reasoning_effort="none",
         extra_body={"allowed_openai_params": ["reasoning_effort"]},
-        max_tokens=650,
+        max_tokens=900,
         timeout=30,
         retries=0,
         max_retries=0,
