@@ -37,13 +37,15 @@ class JobResearchResult(BaseModel):
 
     status: Literal["completed", "partial", "unavailable"]
     query: str
+    summary: str = ""
     sources: list[ResearchSource] = Field(default_factory=list)
     citation_markdown: list[str] = Field(default_factory=list)
     providers_used: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
 
-SearchCallable = Callable[[str], Awaitable[list[ResearchSource]]]
+SearchResponse = list[ResearchSource] | tuple[list[ResearchSource], str]
+SearchCallable = Callable[[str], Awaitable[SearchResponse]]
 
 
 class JobProfileResearchService:
@@ -108,15 +110,20 @@ class JobProfileResearchService:
         """Search Composio first and supplement with SerpApi when needed."""
 
         sources: list[ResearchSource] = []
+        summary = ""
         providers_used: list[str] = []
         warnings: list[str] = []
 
         if self.settings.composio_api_key:
             try:
-                primary = await asyncio.wait_for(
+                primary_response = await asyncio.wait_for(
                     self._composio_search(clean_query),
                     timeout=self.timeout_seconds,
                 )
+                if isinstance(primary_response, tuple):
+                    primary, summary = primary_response
+                else:
+                    primary = primary_response
                 providers_used.append("composio_search")
                 sources.extend(primary)
             except TimeoutError:
@@ -130,9 +137,14 @@ class JobProfileResearchService:
         if len(unique_primary) < MIN_PRIMARY_SOURCES:
             if self.settings.serp_api_key:
                 try:
-                    fallback = await asyncio.wait_for(
+                    fallback_response = await asyncio.wait_for(
                         self._serpapi_search(clean_query),
                         timeout=self.timeout_seconds,
+                    )
+                    fallback = (
+                        fallback_response[0]
+                        if isinstance(fallback_response, tuple)
+                        else fallback_response
                     )
                     providers_used.append("serpapi")
                     sources.extend(fallback)
@@ -153,6 +165,7 @@ class JobProfileResearchService:
         return JobResearchResult(
             status=status,
             query=clean_query,
+            summary=summary,
             sources=sources,
             citation_markdown=[f"- [{source.title}]({source.url})" for source in sources],
             providers_used=providers_used,
@@ -187,11 +200,11 @@ class JobProfileResearchService:
             arguments={"query": _role_search_query(query)},
         )
 
-    async def _search_composio(self, query: str) -> list[ResearchSource]:
+    async def _search_composio(self, query: str) -> SearchResponse:
         # Session creation is synchronous too, so the complete path belongs in
         # the worker thread; otherwise the first request blocks every SSE run.
         response = await asyncio.to_thread(self._execute_composio, query)
-        return _extract_composio_sources(response)
+        return _extract_composio_sources(response), _extract_composio_answer(response)
 
     def _get_serpapi_toolkit(self) -> Any:
         if self._serpapi_toolkit is not None:
@@ -294,6 +307,15 @@ def _extract_composio_sources(response: Any) -> list[ResearchSource]:
                 )
             )
     return _deduplicate_sources(sources)
+
+
+def _extract_composio_answer(response: Any) -> str:
+    """Keep only Composio Search's bounded public synthesis, never its raw envelope."""
+    for mapping in _walk_mappings(response):
+        answer = mapping.get("answer")
+        if isinstance(answer, str) and answer.strip():
+            return _bounded_text(answer, 1_600)
+    return ""
 
 
 def _extract_serpapi_sources(response: str) -> list[ResearchSource]:

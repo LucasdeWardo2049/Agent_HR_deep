@@ -3,7 +3,12 @@ import json
 
 import pytest
 
-from app.job_research import JobProfileResearchService, ResearchSource, _extract_serpapi_sources
+from app.job_research import (
+    JobProfileResearchService,
+    ResearchSource,
+    _extract_composio_answer,
+    _extract_serpapi_sources,
+)
 from app.settings import Settings
 
 
@@ -134,6 +139,23 @@ def test_serpapi_results_are_bounded_to_safe_fields() -> None:
     assert len(result[0].title) == 180
     assert len(result[0].snippet) == 500
     assert "raw_html" not in result[0].model_dump_json()
+
+
+def test_composio_answer_is_bounded_without_copying_the_raw_envelope() -> None:
+    response = {
+        "data": {
+            "results": {
+                "answer": "Resumo público " + ("x" * 2_000),
+                "internal": "must not reach the model",
+            }
+        }
+    }
+
+    answer = _extract_composio_answer(response)
+
+    assert answer.startswith("Resumo público")
+    assert len(answer) == 1_600
+    assert "must not reach the model" not in answer
 
 
 @pytest.mark.asyncio
