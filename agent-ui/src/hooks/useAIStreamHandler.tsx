@@ -139,7 +139,7 @@ const useAIChatStreamHandler = () => {
         }))
       }
 
-      let newSessionId = sessionId
+      let createdSessionId: string | null = null
       try {
         const endpointUrl = constructEndpointUrl(selectedEndpoint)
         let runUrl: string | null = null
@@ -176,7 +176,9 @@ const useAIChatStreamHandler = () => {
               chunk.event === RunEvent.ReasoningStarted ||
               chunk.event === RunEvent.TeamReasoningStarted
             ) {
-              newSessionId = chunk.session_id as string
+              if (!sessionId && chunk.session_id) {
+                createdSessionId = chunk.session_id as string
+              }
               setSessionId(chunk.session_id as string)
               if (
                 (!sessionId || sessionId !== chunk.session_id) &&
@@ -313,20 +315,21 @@ const useAIChatStreamHandler = () => {
 
             if (
               chunk.event === RunEvent.RunError ||
+              chunk.event === RunEvent.RunCancelled ||
               chunk.event === RunEvent.TeamRunError ||
               chunk.event === RunEvent.TeamRunCancelled
             ) {
               const errorContent =
-                (chunk.content as string) ||
-                (chunk.event === RunEvent.TeamRunCancelled
+                chunk.event === RunEvent.RunCancelled ||
+                chunk.event === RunEvent.TeamRunCancelled
                   ? 'A execução foi cancelada.'
-                  : 'Ocorreu um erro durante a execução.')
+                  : 'Não foi possível concluir a resposta. Tente novamente.'
               markError(errorContent)
-              if (newSessionId) {
+              if (createdSessionId) {
                 setSessionsData(
                   (sessions) =>
                     sessions?.filter(
-                      (item) => item.session_id !== newSessionId
+                      (item) => item.session_id !== createdSessionId
                     ) ?? null
                 )
               }
@@ -368,25 +371,29 @@ const useAIChatStreamHandler = () => {
               })
             }
           },
-          onError: (error) => {
-            markError(error.message)
-            if (newSessionId) {
+          onError: () => {
+            markError(
+              'Não foi possível conectar ao AgentOS. Verifique o endpoint e tente novamente.'
+            )
+            if (createdSessionId) {
               setSessionsData(
                 (sessions) =>
                   sessions?.filter(
-                    (item) => item.session_id !== newSessionId
+                    (item) => item.session_id !== createdSessionId
                   ) ?? null
-              )
+                )
             }
           },
           onComplete: () => undefined
         })
-      } catch (error) {
-        markError(error instanceof Error ? error.message : String(error))
-        if (newSessionId) {
+      } catch {
+        markError(
+          'Não foi possível conectar ao AgentOS. Verifique o endpoint e tente novamente.'
+        )
+        if (createdSessionId) {
           setSessionsData(
             (sessions) =>
-              sessions?.filter((item) => item.session_id !== newSessionId) ??
+              sessions?.filter((item) => item.session_id !== createdSessionId) ??
               null
           )
         }

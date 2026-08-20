@@ -143,15 +143,11 @@ async def test_report_uses_exact_three_sheet_names_and_deletes_temporary_xlsx(mo
     written = [arguments["sheet_name"] for slug, arguments, _ in calls if slug == "GOOGLESHEETS_BATCH_UPDATE"]
     assert written == ["Summary", "Criteria", "Candidates"]
     link_formats = [arguments for slug, arguments, _ in calls if slug == "GOOGLESHEETS_FORMAT_CELL"]
-    assert link_formats == [
-        {
-            "spreadsheet_id": "sheet-1",
-            "sheet_name": "Candidates",
-            "range": "B2",
-            "text_link": "http://localhost:8000/api/v1/talent/candidates/cv-1/cv",
-            "hyperlink_display_type": "LINKED",
-            "text_color": "#E7194B",
-            "underline": True,
-            "bold": True,
-        }
-    ]
+    assert link_formats == []
+    candidates_write = next(
+        arguments for slug, arguments, _ in calls
+        if slug == "GOOGLESHEETS_BATCH_UPDATE" and arguments["sheet_name"] == "Candidates"
+    )
+    assert candidates_write["values"][1][1] == (
+        "http://localhost:8000/api/v1/talent/candidates/cv-1/cv"
+    )

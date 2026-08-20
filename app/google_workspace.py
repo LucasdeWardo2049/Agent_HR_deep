@@ -108,9 +108,8 @@ def build_report_tables(
     candidate_cv_urls: list[str] = []
     for assessment in sorted(assessments, key=lambda item: (item.candidate_name or "").casefold()):
         profile = profile_by_id[assessment.candidate_id]
-        candidate_cv_urls.append(
-            f"{public_app_url.rstrip('/')}/api/v1/talent/candidates/{quote(profile.candidate_id, safe='')}/cv"
-        )
+        cv_url = f"{public_app_url.rstrip('/')}/api/v1/talent/candidates/{quote(profile.candidate_id, safe='')}/cv"
+        candidate_cv_urls.append(cv_url)
         education = "; ".join(profile.education)
         languages = "; ".join(profile.languages)
         evidence = " | ".join(
@@ -182,6 +181,7 @@ def create_xlsx(path: Path, tables: ReportTables) -> None:
             for row_number, cv_url in enumerate(tables.candidate_cv_urls, start=2):
                 cell = sheet.cell(row=row_number, column=2)
                 if cv_url:
+                    cell.value = "Abrir currículo"
                     cell.hyperlink = cv_url
                     cell.style = "Hyperlink"
                     cell.font = Font(name="Inter", size=10, bold=True, color="E7194B", underline="single")

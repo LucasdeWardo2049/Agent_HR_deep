@@ -24,6 +24,23 @@ def test_ui_parallelizes_discovery_and_batches_content_per_frame() -> None:
     messages = read("agent-ui/src/components/chat/ChatArea/Messages/MessageItem.tsx")
 
     assert "Promise.all([getTeams(), getAgents()])" in actions
-    assert "window.requestAnimationFrame(flushContentChunk)" in stream
+    assert "window.requestAnimationFrame(flushPendingChunks)" in stream
     assert "Pesquisando perfil da vaga" in messages
     assert "Analisando banco de talentos" in messages
+    assert "pending.content + incoming.content" in stream
+    assert "pendingProgressChunk = chunk" in stream
+    assert "replace(lastContent" not in read("agent-ui/src/hooks/useAIStreamHandler.tsx")
+
+
+def test_ui_handles_progress_cancellation_and_owns_the_scroll_container() -> None:
+    stream_handler = read("agent-ui/src/hooks/useAIStreamHandler.tsx")
+    message_area = read("agent-ui/src/components/chat/ChatArea/MessageArea.tsx")
+    chat_area = read("agent-ui/src/components/chat/ChatArea/ChatArea.tsx")
+
+    assert "RunEvent.CustomEvent" in stream_handler
+    assert "RunEvent.RunCancelled" in stream_handler
+    assert "createdSessionId" in stream_handler
+    assert "scrollClassName=" in message_area
+    assert "overflow-y-auto" in message_area
+    assert "min-h-0" in chat_area
+    assert "overflow-hidden" in chat_area

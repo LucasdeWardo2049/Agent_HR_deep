@@ -117,6 +117,8 @@ def chat_model() -> OpenAILike:
         base_url=settings.local_llm_base_url,
         api_key=settings.local_llm_api_key,
         temperature=0,
+        reasoning_effort="none",
+        extra_body={"allowed_openai_params": ["reasoning_effort"]},
         max_tokens=900,
         timeout=30,
         retries=0,

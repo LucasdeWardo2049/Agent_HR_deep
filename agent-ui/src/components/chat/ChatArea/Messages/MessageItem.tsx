@@ -156,9 +156,9 @@ const AgentMessage = memo(({ message, isStreaming = false }: MessageProps) => {
   const activityLabel =
     message.progress?.label ??
     (activeTool === 'research_job_profile'
-      ? 'Pesquisando o perfil da vaga'
+      ? 'Pesquisando perfil da vaga'
       : activeTool === 'search_talent_pool'
-        ? 'Analisando o banco de talentos'
+        ? 'Analisando banco de talentos'
         : 'Preparando a resposta')
   const talentResult = isStreaming ? null : parseTalentResult(message.content)
 

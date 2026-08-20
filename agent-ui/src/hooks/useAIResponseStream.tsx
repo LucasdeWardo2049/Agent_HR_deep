@@ -164,9 +164,10 @@ export default function useAIResponseStream() {
       } = options
 
       let pendingContentChunk: RunResponseContent | null = null
+      let pendingProgressChunk: RunResponseContent | null = null
       let frameId: number | null = null
 
-      const flushContentChunk = () => {
+      const flushPendingChunks = () => {
         if (frameId !== null) {
           window.cancelAnimationFrame(frameId)
           frameId = null
@@ -174,6 +175,16 @@ export default function useAIResponseStream() {
         if (pendingContentChunk) {
           onChunk(pendingContentChunk)
           pendingContentChunk = null
+        }
+        if (pendingProgressChunk) {
+          onChunk(pendingProgressChunk)
+          pendingProgressChunk = null
+        }
+      }
+
+      const scheduleFlush = () => {
+        if (frameId === null) {
+          frameId = window.requestAnimationFrame(flushPendingChunks)
         }
       }
 
@@ -184,16 +195,22 @@ export default function useAIResponseStream() {
           typeof chunk.content === 'string'
 
         if (isTextDelta) {
+          if (pendingProgressChunk) flushPendingChunks()
           // RunContent is a delta in Agno 2.8.5. Preserve every delta received
           // during a frame, then commit only once to React.
           pendingContentChunk = mergeContentChunks(pendingContentChunk, chunk)
-          if (frameId === null) {
-            frameId = window.requestAnimationFrame(flushContentChunk)
-          }
+          scheduleFlush()
           return
         }
 
-        flushContentChunk()
+        if (chunk.event === RunEvent.CustomEvent) {
+          if (pendingContentChunk) flushPendingChunks()
+          pendingProgressChunk = chunk
+          scheduleFlush()
+          return
+        }
+
+        flushPendingChunks()
         onChunk(chunk)
       }
 
@@ -236,10 +253,10 @@ export default function useAIResponseStream() {
         }
         parser.feed(decoder.decode())
         parser.finish()
-        flushContentChunk()
+        flushPendingChunks()
         onComplete()
       } catch (error) {
-        flushContentChunk()
+        flushPendingChunks()
         onError(error instanceof Error ? error : new Error(String(error)))
       }
     },

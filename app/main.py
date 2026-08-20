@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from functools import cache
 from os import getenv
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 from agno.os import AgentOS
@@ -35,10 +35,9 @@ XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 audit_logger = logging.getLogger("uvicorn.error")
 
 
-@cache
 def get_health_llm() -> LocalLLM:
     """Reuse the OpenAI-compatible connection pool across health checks."""
-    return LocalLLM(settings)
+    return cast(LocalLLM, get_talent_service().local_llm)
 
 
 @asynccontextmanager

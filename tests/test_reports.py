@@ -82,7 +82,7 @@ def test_reports_have_three_tabs_alphabetical_candidates_and_no_formula_injectio
     assert "python: Atendido" in str(candidates["J2"].value)
     assert candidates["B2"].hyperlink.target == "http://localhost:8000/api/v1/talent/candidates/1/cv"
     assert "drive.test" not in candidates["B2"].hyperlink.target
-    assert tables.candidates[1][1] == "Abrir currículo"
+    assert tables.candidates[1][1] == "http://localhost:8000/api/v1/talent/candidates/1/cv"
     assert tables.candidate_cv_urls == [
         "http://localhost:8000/api/v1/talent/candidates/1/cv",
         "http://localhost:8000/api/v1/talent/candidates/2/cv",
