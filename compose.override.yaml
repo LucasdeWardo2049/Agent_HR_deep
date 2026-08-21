@@ -10,4 +10,4 @@
 services:
   agentos-api:
     environment:
-      TALENT_MOCK_LLM: "true"
+      TALENT_MOCK_FALLBACK: "true"

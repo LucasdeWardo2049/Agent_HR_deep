@@ -418,6 +418,8 @@ class TalentService:
                     total_profiles,
                 )
             assessments.sort(key=lambda item: (item.candidate_name or "").casefold())
+            if simulated_warning := _simulated_content_warning(job_profile, assessments):
+                warnings.append(simulated_warning)
             await _emit_progress(progress, "generating_report", "Gerando planilhas e links para download")
             artifacts = await self.workspace.create_report(job_profile, assessments, profiles)
             excel_download_url = (
@@ -466,12 +468,14 @@ def get_talent_service() -> TalentService:
     settings = get_settings()
     local_llm: StructuredGenerator = LocalLLM(settings)
     pdf_fallback: PDFFallback = GeminiPDFParser(settings)
-    if settings.talent_mock_llm:
-        from app.mocks import MockPDFFallback, MockStructuredGenerator
+    if settings.talent_mock_fallback:
+        from app.mocks import FallbackPDFParser, FallbackStructuredGenerator
 
-        local_llm = MockStructuredGenerator()
-        pdf_fallback = MockPDFFallback()
-        _log_event("talent_mock_llm_enabled", status="ok")
+        # The real model stays the first option; fixtures answer only after it
+        # fails, and the resulting report is flagged as simulated.
+        local_llm = FallbackStructuredGenerator(local_llm)
+        pdf_fallback = FallbackPDFParser(pdf_fallback)
+        _log_event("talent_mock_fallback_enabled", status="ok")
     return TalentService(
         store=TalentStore(),
         workspace=GoogleWorkspaceClient(settings),
@@ -528,6 +532,22 @@ async def search_talent_pool(description: str) -> AsyncIterator[TalentSearchProg
             search_task.cancel()
             with suppress(asyncio.CancelledError):
                 await search_task
+
+
+def _simulated_content_warning(
+    job_profile: JobProfile,
+    assessments: list[CandidateAssessment],
+) -> str | None:
+    """Surface fixture-sourced content so a degraded report is never mistaken for a real one."""
+    from app.mocks import MOCK_MARKER
+
+    texts = [job_profile.title, *(assessment.professional_summary or "" for assessment in assessments)]
+    if not any(MOCK_MARKER in text for text in texts):
+        return None
+    return (
+        "O modelo local falhou e parte deste relatório usa dados simulados, marcados com "
+        f"{MOCK_MARKER}. Não use este resultado para decisão; execute novamente com o modelo disponível."
+    )
 
 
 def _log_event(event: str, **fields: object) -> None:

@@ -65,15 +65,24 @@ async def health() -> JSONResponse:
         asyncio.to_thread(database_is_healthy),
         get_health_llm().healthy(),
     )
-    healthy = database_ok and model_ok
-    return JSONResponse(
-        status_code=200 if healthy else 503,
-        content={
-            "status": "healthy" if healthy else "unhealthy",
-            "database": "ok" if database_ok else "unavailable",
-            "local_model": "ok" if model_ok else "unavailable",
-        },
-    )
+    # A mock fallback keeps the service usable without the model, so report
+    # "degraded" instead of pretending to be healthy or failing the container.
+    mock_fallback = settings.talent_mock_fallback
+    serviceable = database_ok and (model_ok or mock_fallback)
+    if database_ok and model_ok:
+        status = "healthy"
+    elif serviceable:
+        status = "degraded"
+    else:
+        status = "unhealthy"
+    content = {
+        "status": status,
+        "database": "ok" if database_ok else "unavailable",
+        "local_model": "ok" if model_ok else "unavailable",
+    }
+    if mock_fallback:
+        content["mock_fallback"] = "armed" if model_ok else "active"
+    return JSONResponse(status_code=200 if serviceable else 503, content=content)
 
 
 def _coerce_agent_result(content: Any) -> TalentSearchResult:

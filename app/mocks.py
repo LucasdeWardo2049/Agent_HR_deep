@@ -9,6 +9,7 @@ criterion is ever reported as `supported`.
 
 import hashlib
 import json
+import logging
 import re
 from typing import Any, TypeVar, cast
 
@@ -24,6 +25,8 @@ from app.schemas import (
 )
 
 T = TypeVar("T", bound=BaseModel)
+
+logger = logging.getLogger(__name__)
 
 MOCK_MARKER = "[DADOS SIMULADOS - NAO USAR PARA DECISAO]"
 MAX_MOCK_CRITERIA = 5
@@ -137,3 +140,62 @@ class MockPDFFallback:
 
     async def parse(self, pdf_bytes: bytes) -> CandidateProfile:
         return _mock_candidate_profile(hashlib.sha256(pdf_bytes).hexdigest())
+
+
+class FallbackStructuredGenerator:
+    """Real generator first; fixtures only after it fails.
+
+    Degradation is never silent: fixture output carries `MOCK_MARKER`, which the
+    service turns into a search warning, and each fallback is logged with the
+    schema name and error type only.
+    """
+
+    def __init__(
+        self,
+        primary: Any,
+        fallback: Any | None = None,
+    ) -> None:
+        self.primary = primary
+        self.fallback = fallback if fallback is not None else MockStructuredGenerator()
+
+    async def generate(self, schema: type[T], system_prompt: str, user_input: str) -> T:
+        try:
+            return cast(T, await self.primary.generate(schema, system_prompt, user_input))
+        except Exception as exc:
+            _log_event(
+                "structured_generation_mocked",
+                schema=schema.__name__,
+                status="degraded",
+                error_type=type(exc).__name__,
+            )
+            return cast(T, await self.fallback.generate(schema, system_prompt, user_input))
+
+    async def healthy(self) -> bool:
+        """Report the real model's state so `/health` can show degradation."""
+        probe = getattr(self.primary, "healthy", None)
+        if probe is None:
+            return True
+        return bool(await probe())
+
+
+class FallbackPDFParser:
+    """Gemini first, fixtures only after it fails."""
+
+    def __init__(self, primary: Any, fallback: Any | None = None) -> None:
+        self.primary = primary
+        self.fallback = fallback if fallback is not None else MockPDFFallback()
+
+    async def parse(self, pdf_bytes: bytes) -> CandidateProfile:
+        try:
+            return cast(CandidateProfile, await self.primary.parse(pdf_bytes))
+        except Exception as exc:
+            _log_event(
+                "pdf_parse_mocked",
+                status="degraded",
+                error_type=type(exc).__name__,
+            )
+            return await self.fallback.parse(pdf_bytes)
+
+
+def _log_event(event: str, **fields: object) -> None:
+    logger.info(json.dumps({"event": event, **fields}, ensure_ascii=False, default=str))
