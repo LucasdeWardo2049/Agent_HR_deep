@@ -464,11 +464,19 @@ class TalentService:
 @cache
 def get_talent_service() -> TalentService:
     settings = get_settings()
+    local_llm: StructuredGenerator = LocalLLM(settings)
+    pdf_fallback: PDFFallback = GeminiPDFParser(settings)
+    if settings.talent_mock_llm:
+        from app.mocks import MockPDFFallback, MockStructuredGenerator
+
+        local_llm = MockStructuredGenerator()
+        pdf_fallback = MockPDFFallback()
+        _log_event("talent_mock_llm_enabled", status="ok")
     return TalentService(
         store=TalentStore(),
         workspace=GoogleWorkspaceClient(settings),
-        local_llm=LocalLLM(settings),
-        pdf_fallback=GeminiPDFParser(settings),
+        local_llm=local_llm,
+        pdf_fallback=pdf_fallback,
         settings=settings,
     )
 

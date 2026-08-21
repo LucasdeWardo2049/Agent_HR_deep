@@ -42,6 +42,13 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("LOCAL_LLM_MODEL", "OPENAI_MODEL_ID"),
     )
     agent_chat_model: str = "qwen-fast"
+    # Answer structured generation from fixtures instead of the local model, so
+    # the Drive/Sheets/XLSX pipeline stays testable while the endpoint is down.
+    # Never enable in production: reports become simulated and assert nothing.
+    talent_mock_llm: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("TALENT_MOCK_LLM", "MOCK_LLM"),
+    )
 
     gemini_api_key: str | None = None
     gemini_pdf_model: str | None = None
