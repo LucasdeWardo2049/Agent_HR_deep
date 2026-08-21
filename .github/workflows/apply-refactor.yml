@@ -1,0 +1,112 @@
+name: Apply simplification refactor
+
+on:
+  push:
+    branches: [refactor/simplify-agent-ui]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/simplify-agent-ui
+          fetch-depth: 0
+
+      - name: Reconstruct refactor bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/refactor-work
+          cat .refactor/part-* | base64 --decode > /tmp/refactor.tar.gz
+          tar -xzf /tmp/refactor.tar.gz -C /tmp/refactor-work
+
+          cp /tmp/refactor-work/schemas.py app/schemas.py
+          cp /tmp/refactor-work/settings.py app/settings.py
+          cp /tmp/refactor-work/llm.py app/llm.py
+          cp /tmp/refactor-work/talent.py app/talent.py
+          cp /tmp/refactor-work/talent_search.py agents/talent_search.py
+          cp /tmp/refactor-work/main.py app/main.py
+          cp /tmp/refactor-work/config.yaml app/config.yaml
+          cp /tmp/refactor-work/.env.example .env.example
+          cp /tmp/refactor-work/README.md README.md
+          cp /tmp/refactor-work/AGENTS.md AGENTS.md
+          cp /tmp/refactor-work/pyproject.toml pyproject.toml
+          cp /tmp/refactor-work/requirements.txt requirements.txt
+          cp /tmp/refactor-work/Dockerfile Dockerfile
+
+          cp /tmp/refactor-work/fakes.py tests/fakes.py
+          cp /tmp/refactor-work/test_talent.py tests/test_talent.py
+          cp /tmp/refactor-work/test_agent_configuration.py tests/test_agent_configuration.py
+          cp /tmp/refactor-work/test_api.py tests/test_api.py
+          cp /tmp/refactor-work/test_agent_ui_contract.py tests/test_agent_ui_contract.py
+          cp /tmp/refactor-work/test_llm.py tests/test_llm.py
+          cp /tmp/refactor-work/test_e2e_external.py tests/test_e2e_external.py
+          cp /tmp/refactor-work/test_schemas.py tests/test_schemas.py
+
+          cp /tmp/refactor-work/Messages.tsx agent-ui/src/components/chat/ChatArea/Messages/Messages.tsx
+          cp /tmp/refactor-work/MessageItem.tsx agent-ui/src/components/chat/ChatArea/Messages/MessageItem.tsx
+
+          rm -f app/job_research.py tests/test_job_research.py app/static/index.html
+          rm -f .mcp.json scripts/mcp_check.sh
+          rmdir app/static 2>/dev/null || true
+          rm -rf .refactor
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: |
+          uv pip install --system -r requirements.txt
+          uv pip install --system -e .[dev]
+
+      - name: Validate Python formatting
+        run: ruff format --check .
+
+      - name: Run Python tests
+        run: pytest
+
+      - name: Run Python lint and types
+        run: bash scripts/validate.sh
+
+      - name: Validate Agent UI
+        working-directory: agent-ui
+        run: |
+          npm ci
+          npm run validate
+
+      - name: Commit validated refactor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            agents/talent_search.py \
+            app/schemas.py app/settings.py app/llm.py app/talent.py app/main.py app/config.yaml \
+            app/job_research.py app/static/index.html \
+            db/talent.py \
+            tests/fakes.py tests/test_talent.py tests/test_agent_configuration.py tests/test_api.py \
+            tests/test_agent_ui_contract.py tests/test_llm.py tests/test_e2e_external.py tests/test_schemas.py \
+            tests/test_job_research.py \
+            agent-ui/src/components/chat/ChatArea/Messages/Messages.tsx \
+            agent-ui/src/components/chat/ChatArea/Messages/MessageItem.tsx \
+            .env.example README.md AGENTS.md pyproject.toml requirements.txt Dockerfile \
+            .mcp.json scripts/mcp_check.sh .refactor
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'refactor: simplify conversational talent agent'
+          git push origin HEAD:refactor/simplify-agent-ui
