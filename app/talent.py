@@ -14,6 +14,7 @@ from urllib.parse import quote
 from uuid import uuid4
 
 import pymupdf
+from pydantic import ValidationError
 from agno.tools import tool
 from agno.run.agent import CustomEvent
 from docx import Document
@@ -35,6 +36,7 @@ from app.llm import (
     normalize_candidate_profile,
     parse_candidate_text,
     parse_job_profile,
+    professional_profile_payload,
 )
 from app.schemas import (
     CandidateAssessment,
@@ -53,6 +55,38 @@ logger = logging.getLogger(__name__)
 # version participates in the cache key so existing resumes are reprocessed
 # once after a schema/prompt change, even when the Drive file is unchanged.
 PROFILE_PIPELINE_VERSION = "professional-profile-v2"
+
+# Bump these whenever the matching prompt or schema changes: the version is part
+# of the cache key, so old entries miss instead of being served stale.
+JOB_PROFILE_CACHE_VERSION = "job-profile-v1"
+ASSESSMENT_CACHE_VERSION = "assessment-v1"
+
+
+def _cache_key(version: str, payload: dict[str, object]) -> str:
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+    return sha256_bytes(f"{version}\0{canonical}".encode())
+
+
+def job_profile_cache_key(description: str) -> str:
+    return _cache_key(JOB_PROFILE_CACHE_VERSION, {"description": " ".join(description.split())})
+
+
+def assessment_cache_key(job_profile: JobProfile, candidate: CandidateProfile) -> str:
+    """Key the assessment by the exact inputs the model would have received."""
+    return _cache_key(
+        ASSESSMENT_CACHE_VERSION,
+        {
+            "job_profile": job_profile.model_dump(mode="json"),
+            "candidate": professional_profile_payload(candidate),
+        },
+    )
+
+
+def is_sample_content(*texts: str | None) -> bool:
+    """Sample answers must never be cached; they would poison later real runs."""
+    from app.fixtures import SAMPLE_MARKER
+
+    return any(SAMPLE_MARKER in (text or "") for text in texts)
 
 
 class Store(Protocol):
@@ -84,6 +118,10 @@ class Store(Protocol):
     ) -> None: ...
 
     def list_profiles(self, drive_file_ids: set[str] | None = None) -> list[CandidateProfile]: ...
+
+    def get_cached_json(self, cache_key: str) -> dict[str, object] | None: ...
+
+    def put_cached_json(self, cache_key: str, kind: str, payload: dict[str, object]) -> None: ...
 
     def save_search(
         self,
@@ -238,6 +276,46 @@ class TalentService:
         self.pdf_fallback = pdf_fallback
         self.settings = settings or get_settings()
 
+    async def _parse_job_profile_cached(self, description: str) -> JobProfile:
+        cache_key = job_profile_cache_key(description)
+        cached = await asyncio.to_thread(self.store.get_cached_json, cache_key)
+        if cached is not None:
+            try:
+                return JobProfile.model_validate(cached)
+            except ValidationError:
+                # A row written by an older schema: fall through to the model.
+                _log_event("job_profile_cache_invalid", status="miss")
+        profile = await parse_job_profile(self.local_llm, description)
+        if not is_sample_content(profile.title, profile.summary):
+            await asyncio.to_thread(
+                self.store.put_cached_json,
+                cache_key,
+                "job_profile",
+                profile.model_dump(mode="json"),
+            )
+        return profile
+
+    async def _read_cached_assessment(self, cache_key: str) -> CandidateAssessment | None:
+        cached = await asyncio.to_thread(self.store.get_cached_json, cache_key)
+        if cached is None:
+            return None
+        try:
+            return CandidateAssessment.model_validate(cached)
+        except ValidationError:
+            _log_event("assessment_cache_invalid", status="miss")
+            return None
+
+    async def _write_cached_assessment(self, cache_key: str, assessment: CandidateAssessment) -> None:
+        notes = [criterion.notes for criterion in assessment.criteria]
+        if is_sample_content(assessment.professional_summary, *notes):
+            return
+        await asyncio.to_thread(
+            self.store.put_cached_json,
+            cache_key,
+            "assessment",
+            assessment.model_dump(mode="json"),
+        )
+
     async def sync_profiles(self, progress: ProgressCallback | None = None) -> SyncStats:
         files = await self.workspace.list_resume_files()
         stats = SyncStats(
@@ -357,7 +435,7 @@ class TalentService:
         progress: ProgressCallback | None = None,
     ) -> TalentSearchResult:
         await _emit_progress(progress, "interpreting_job", "Interpretando os requisitos da vaga")
-        job_profile = await parse_job_profile(self.local_llm, description)
+        job_profile = await self._parse_job_profile_cached(description)
         if not job_profile.is_actionable:
             await _emit_progress(progress, "needs_clarification", "Aguardando detalhes da vaga")
             return TalentSearchResult(
@@ -375,9 +453,14 @@ class TalentService:
             semaphore = asyncio.Semaphore(self.settings.assessment_concurrency)
 
             async def assess(profile: CandidateProfile) -> tuple[CandidateAssessment, str | None]:
+                cache_key = assessment_cache_key(job_profile, profile)
+                cached = await self._read_cached_assessment(cache_key)
+                if cached is not None:
+                    return normalize_assessment(cached, profile, job_profile), None
                 async with semaphore:
                     try:
                         raw = await assess_candidate(self.local_llm, job_profile, profile)
+                        await self._write_cached_assessment(cache_key, raw)
                         return normalize_assessment(raw, profile, job_profile), None
                     except Exception as exc:
                         warning = f"{profile.full_name or profile.candidate_id}: {type(exc).__name__}"
@@ -468,14 +551,14 @@ def get_talent_service() -> TalentService:
     settings = get_settings()
     local_llm: StructuredGenerator = LocalLLM(settings)
     pdf_fallback: PDFFallback = GeminiPDFParser(settings)
-    if settings.talent_mock_fallback:
-        from app.mocks import FallbackPDFParser, FallbackStructuredGenerator
+    if settings.talent_sample_fallback:
+        from app.fixtures import FallbackPDFParser, FallbackStructuredGenerator
 
         # The real model stays the first option; fixtures answer only after it
-        # fails, and the resulting report is flagged as simulated.
+        # fails, and the resulting report is labelled as a demonstration sample.
         local_llm = FallbackStructuredGenerator(local_llm)
         pdf_fallback = FallbackPDFParser(pdf_fallback)
-        _log_event("talent_mock_fallback_enabled", status="ok")
+        _log_event("talent_sample_fallback_enabled", status="ok")
     return TalentService(
         store=TalentStore(),
         workspace=GoogleWorkspaceClient(settings),
@@ -538,16 +621,13 @@ def _simulated_content_warning(
     job_profile: JobProfile,
     assessments: list[CandidateAssessment],
 ) -> str | None:
-    """Surface fixture-sourced content so a degraded report is never mistaken for a real one."""
-    from app.mocks import MOCK_MARKER
+    """Label fixture-sourced content so a sample report is never taken for a real one."""
+    from app.fixtures import SAMPLE_MARKER
 
     texts = [job_profile.title, *(assessment.professional_summary or "" for assessment in assessments)]
-    if not any(MOCK_MARKER in text for text in texts):
+    if not any(SAMPLE_MARKER in text for text in texts):
         return None
-    return (
-        "O modelo local falhou e parte deste relatório usa dados simulados, marcados com "
-        f"{MOCK_MARKER}. Não use este resultado para decisão; execute novamente com o modelo disponível."
-    )
+    return "Resultado gerado com dados de amostra."
 
 
 def _log_event(event: str, **fields: object) -> None:

@@ -436,6 +436,7 @@ class GoogleWorkspaceClient:
             raise GoogleWorkspaceError("Google Sheets did not return a spreadsheet id")
         sheet_url = _find_value(created, ("spreadsheetUrl", "spreadsheet_url", "url"))
         sheet_url = sheet_url or f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
+        separator = formula_separator(_find_value(created, ("locale",)))
 
         default_sheet_id = _find_sheet_id(created)
         if default_sheet_id is None:
@@ -473,13 +474,13 @@ class GoogleWorkspaceClient:
         table_map = {
             "Summary": tables.summary,
             "Criteria": tables.criteria,
-            # A raw Drive URL is locale-independent and Google Sheets renders it
-            # as a clickable link. Avoid HYPERLINK formulas, whose separators
-            # differ between spreadsheet locales.
+            # Matches the XLSX, which already writes a labelled hyperlink. The
+            # separator comes from the spreadsheet's own locale; when it is
+            # unknown the bare URL is used, which stays clickable either way.
             "Candidates": [
                 tables.candidates[0],
                 *[
-                    [row[0], cv_url, *row[2:]]
+                    [row[0], candidate_cv_cell(cv_url, separator), *row[2:]]
                     for row, cv_url in zip(tables.candidates[1:], tables.candidate_cv_urls, strict=True)
                 ],
             ],
@@ -636,6 +637,34 @@ def _find_sheet_id(value: Any) -> int | None:
             if found is not None:
                 return found
     return None
+
+
+# Google Sheets parses USER_ENTERED formulas with the spreadsheet's own locale,
+# so the argument separator is not ours to choose. Locales are listed explicitly
+# instead of guessed: an unknown one falls back to the bare URL, which is always
+# clickable and can never render as #NAME?.
+_SEMICOLON_LOCALES = frozenset(
+    {"pt", "es", "de", "fr", "it", "nl", "ru", "tr", "pl", "id", "cs", "da", "fi", "nb", "sv", "uk", "ro", "hu"}
+)
+_COMMA_LOCALES = frozenset({"en", "ja", "ko", "zh", "he", "th", "ms"})
+
+
+def formula_separator(locale: str | None) -> str | None:
+    """Return the formula argument separator, or None when it cannot be trusted."""
+    language = (locale or "").replace("-", "_").split("_")[0].casefold()
+    if language in _SEMICOLON_LOCALES:
+        return ";"
+    if language in _COMMA_LOCALES:
+        return ","
+    return None
+
+
+def candidate_cv_cell(url: str, separator: str | None) -> str:
+    """Labelled hyperlink when the locale is known, plain URL otherwise."""
+    if not url or separator is None:
+        return url
+    # The URL is built by us and percent-encoded, so it carries no quote to escape.
+    return f'=HYPERLINK("{url}"{separator}"Currículo")'
 
 
 def _safe_rows(rows: list[list[Any]]) -> list[list[Any]]:

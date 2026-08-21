@@ -11,6 +11,7 @@ class FakeStore:
         self.hashes: dict[str, str] = {}
         self.profiles: dict[str, CandidateProfile] = {}
         self.saved_searches: list[TalentSearchResult] = []
+        self.cache: dict[str, dict[str, Any]] = {}
 
     def get_source_hash(self, drive_file_id: str) -> str | None:
         return self.hashes.get(drive_file_id)
@@ -53,6 +54,13 @@ class FakeStore:
         drive_url: str | None,
     ) -> None:
         del drive_file_id, file_name, mime_type, drive_url
+
+    def get_cached_json(self, cache_key: str) -> dict[str, Any] | None:
+        return self.cache.get(cache_key)
+
+    def put_cached_json(self, cache_key: str, kind: str, payload: dict[str, Any]) -> None:
+        del kind
+        self.cache[cache_key] = payload
 
     def list_profiles(self, drive_file_ids: set[str] | None = None) -> list[CandidateProfile]:
         profiles = list(self.profiles.values())

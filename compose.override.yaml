@@ -1,13 +1,13 @@
-# TEMPORARY - development only.
+# TEMPORARY - development and demonstration only.
 #
-# Answers structured generation from fixtures because LOCAL_LLM_BASE_URL
-# (192.168.4.114:4000) is unreachable from this machine. Searches run end to end
-# through Drive, Sheets and XLSX, but every generated text carries an explicit
-# simulated-data marker and no criterion is ever reported as supported.
+# The local model is always tried first. While LOCAL_LLM_BASE_URL
+# (192.168.4.114:4000) is unreachable, sample fixtures answer instead, so
+# searches still run end to end through Drive, Sheets and XLSX. Affected rows are
+# labelled "Amostra de demonstração" and no criterion is reported as met.
 #
 # DELETE THIS FILE once the local model endpoint is reachable again. Docker
-# Compose loads it automatically, so leaving it here keeps mock mode silently on.
+# Compose loads it automatically, so leaving it here keeps the fallback armed.
 services:
   agentos-api:
     environment:
-      TALENT_MOCK_FALLBACK: "true"
+      TALENT_SAMPLE_FALLBACK: "true"

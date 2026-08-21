@@ -28,7 +28,9 @@
       button, textarea { font: inherit; }
       button, a { -webkit-tap-highlight-color: transparent; }
       [hidden] { display: none !important; }
-      .app { height: 100%; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
+      /* The row track must be explicit: an implicit auto row grows with the
+         transcript, making .chat's 100% indefinite and killing the scroll. */
+      .app { height: 100%; display: grid; grid-template-columns: 244px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
       .sidebar { min-width: 0; display: flex; flex-direction: column; padding: 18px 12px; border-right: 1px solid var(--line); background: var(--sidebar); }
       .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 20px; font-weight: 700; letter-spacing: -.01em; }
       .brand-mark, .avatar { display: grid; place-items: center; flex: 0 0 auto; color: white; background: linear-gradient(145deg, #ff6a73, #d93455); }
@@ -44,14 +46,16 @@
       .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(67,214,162,.09); }
       .runtime.offline .status-dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
       .runtime small { display: block; margin-top: 2px; color: var(--subtle); font-size: 9px; }
-      .chat { min-width: 0; height: 100%; display: grid; grid-template-rows: 62px minmax(0, 1fr) auto; }
+      .chat { min-width: 0; min-height: 0; height: 100%; display: grid; grid-template-rows: 62px minmax(0, 1fr) auto; }
       .chat-header { display: flex; align-items: center; gap: 11px; padding: 0 24px; border-bottom: 1px solid var(--line); background: rgba(13,13,15,.86); backdrop-filter: blur(16px); }
       .chat-header .avatar { width: 30px; height: 30px; border-radius: 9px; }
       .chat-header .avatar svg { width: 16px; }
       .agent-name { margin: 0; font-size: 13px; font-weight: 700; }
       .agent-state { display: flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--subtle); font-size: 10px; }
       .agent-state::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
-      .messages { overflow-y: auto; scroll-behavior: smooth; }
+      /* No smooth behaviour here: programmatic jumps emit intermediate scroll
+         events that would fight the "stick to bottom only if already there" rule. */
+      .messages { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
       .conversation { width: min(760px, calc(100% - 36px)); margin: 0 auto; padding: 44px 0 22px; }
       .welcome { max-width: 620px; margin: 9vh auto 40px; text-align: center; }
       .welcome-icon { width: 54px; height: 54px; display: grid; place-items: center; margin: 0 auto 20px; border: 1px solid rgba(255,90,103,.22); border-radius: 17px; color: #ff8a92; background: var(--accent-soft); }
@@ -69,6 +73,14 @@
       .message.user .bubble { max-width: min(620px, 88%); padding: 12px 15px; border-radius: 16px 16px 4px 16px; background: var(--surface-2); }
       .message.assistant .bubble { min-width: 0; padding-top: 5px; }
       .message p { margin: 0; line-height: 1.7; white-space: pre-wrap; }
+      .markdown > :first-child { margin-top: 0; }
+      .markdown > :last-child { margin-bottom: 0; }
+      .markdown p { margin: 0 0 10px; line-height: 1.7; white-space: normal; }
+      .markdown ul, .markdown ol { margin: 0 0 10px; padding-left: 20px; line-height: 1.7; }
+      .markdown li { margin: 3px 0; }
+      .markdown strong { color: #fff; font-weight: 700; }
+      .markdown code { padding: 1px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+      .markdown a { color: #ff8a92; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
       .assistant-meta { margin-top: 8px; color: var(--subtle); font-size: 11px; }
       .thinking { display: flex; align-items: center; gap: 9px; color: var(--muted); }
       .thinking-dots { display: inline-flex; gap: 3px; }
@@ -153,10 +165,94 @@
       const actionIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>';
       let pending = false;
 
-      const observer = new MutationObserver(scrollToBottom);
+      // Only follow new content when the reader is already at the bottom;
+      // otherwise scrolling up to re-read would be yanked back down.
+      let stickToBottom = true;
+      const observer = new MutationObserver(() => scrollToBottom());
       observer.observe(messages, { childList: true, subtree: true, characterData: true });
+      messages.addEventListener("scroll", () => {
+        stickToBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
+      });
 
-      function scrollToBottom() { messages.scrollTop = messages.scrollHeight; }
+      function scrollToBottom(force) {
+        if (force) stickToBottom = true;
+        if (stickToBottom) messages.scrollTop = messages.scrollHeight;
+      }
+
+      // Agent output can quote resumes and web pages, so it is untrusted input.
+      // Every string here becomes a text node and nothing reaches innerHTML.
+      const INLINE = /\*\*([^*]+)\*\*|__([^_]+)__|\*([^*]+)\*|_([^_]+)_|`([^`]+)`|\[([^\]]+)\]\(([^\s)]+)\)/g;
+      const LIST_ITEM = /^\s*(?:[*+-]|\d+[.)])\s+/;
+      const HEADING = /^\s*#{1,6}\s+/;
+
+      function safeUrl(raw) {
+        try {
+          const url = new URL(raw, window.location.origin);
+          return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+        } catch { return null; }
+      }
+
+      function appendInline(target, text) {
+        let cursor = 0;
+        for (const match of text.matchAll(INLINE)) {
+          const [raw, strongA, strongB, emA, emB, code, label, href] = match;
+          if (match.index > cursor) target.append(text.slice(cursor, match.index));
+          if (strongA || strongB) {
+            const node = document.createElement("strong"); node.textContent = strongA || strongB; target.append(node);
+          } else if (code) {
+            const node = document.createElement("code"); node.textContent = code; target.append(node);
+          } else if (label) {
+            const url = safeUrl(href);
+            if (url) {
+              const node = document.createElement("a");
+              node.href = url; node.target = "_blank"; node.rel = "noopener noreferrer"; node.textContent = label;
+              target.append(node);
+            } else {
+              target.append(raw);
+            }
+          } else {
+            const node = document.createElement("em"); node.textContent = emA || emB; target.append(node);
+          }
+          cursor = match.index + raw.length;
+        }
+        if (cursor < text.length) target.append(text.slice(cursor));
+      }
+
+      function renderMarkdown(text) {
+        const root = document.createElement("div");
+        root.className = "markdown";
+        let list = null;
+        for (const block of String(text ?? "").split(/\n{2,}/)) {
+          for (const line of block.split("\n")) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            if (LIST_ITEM.test(trimmed)) {
+              if (!list) { list = document.createElement("ul"); root.append(list); }
+              const item = document.createElement("li");
+              appendInline(item, trimmed.replace(LIST_ITEM, ""));
+              list.append(item);
+              continue;
+            }
+            list = null;
+            const paragraph = document.createElement("p");
+            if (HEADING.test(trimmed)) {
+              const heading = document.createElement("strong");
+              appendInline(heading, trimmed.replace(HEADING, ""));
+              paragraph.append(heading);
+            } else {
+              appendInline(paragraph, trimmed);
+            }
+            root.append(paragraph);
+          }
+          list = null;
+        }
+        if (!root.childNodes.length) {
+          const fallback = document.createElement("p");
+          fallback.textContent = String(text ?? "");
+          root.append(fallback);
+        }
+        return root;
+      }
       function resizeInput() { input.style.height = "auto"; input.style.height = `${Math.min(input.scrollHeight, 170)}px`; }
       function addUserMessage(text) {
         const item = document.createElement("article"); item.className = "message user";
@@ -182,7 +278,7 @@
       function renderAssistant(item, payload) {
         window.clearInterval(item.stageTimer);
         const bubble = item.querySelector(".bubble"); bubble.replaceChildren();
-        const copy = document.createElement("p"); copy.textContent = payload.message; bubble.append(copy);
+        bubble.append(renderMarkdown(payload.message));
         if (payload.status === "completed") {
           const meta = document.createElement("div"); meta.className = "assistant-meta";
           meta.textContent = `${payload.candidates_analyzed} perfil${payload.candidates_analyzed === 1 ? "" : "is"} analisado${payload.candidates_analyzed === 1 ? "" : "s"} · ordem alfabética`; bubble.append(meta);
@@ -210,7 +306,7 @@
         event.preventDefault(); const description = input.value.trim(); if (pending || description.length < 3) return;
         pending = true; send.disabled = true; welcome.hidden = true;
         threadTitle.textContent = description.length > 34 ? `${description.slice(0, 34)}…` : description;
-        addUserMessage(description); const assistant = addPendingAssistant(); input.value = ""; resizeInput(); scrollToBottom();
+        addUserMessage(description); const assistant = addPendingAssistant(); input.value = ""; resizeInput(); scrollToBottom(true);
         try {
           const response = await fetch("/api/v1/talent/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ description }) });
           const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || "Falha ao executar a busca."); renderAssistant(assistant, payload);

@@ -65,10 +65,10 @@ async def health() -> JSONResponse:
         asyncio.to_thread(database_is_healthy),
         get_health_llm().healthy(),
     )
-    # A mock fallback keeps the service usable without the model, so report
+    # A sample fallback keeps the service usable without the model, so report
     # "degraded" instead of pretending to be healthy or failing the container.
-    mock_fallback = settings.talent_mock_fallback
-    serviceable = database_ok and (model_ok or mock_fallback)
+    sample_fallback = settings.talent_sample_fallback
+    serviceable = database_ok and (model_ok or sample_fallback)
     if database_ok and model_ok:
         status = "healthy"
     elif serviceable:
@@ -80,8 +80,8 @@ async def health() -> JSONResponse:
         "database": "ok" if database_ok else "unavailable",
         "local_model": "ok" if model_ok else "unavailable",
     }
-    if mock_fallback:
-        content["mock_fallback"] = "armed" if model_ok else "active"
+    if sample_fallback:
+        content["sample_fallback"] = "armed" if model_ok else "active"
     return JSONResponse(status_code=200 if serviceable else 503, content=content)
 
 
@@ -118,8 +118,15 @@ def _coerce_agent_run(run: Any) -> TalentSearchResult:
 
 
 async def run_talent_agent(description: str) -> TalentSearchResult:
-    """Run the public API without creating or reusing a chat session."""
-    return await get_talent_service().search(description)
+    """Route through the agent so it can pick a mode per message.
+
+    Calling `TalentService.search` directly made every message a job search, so
+    conversational turns were answered with a job clarification question and
+    could reach Drive without the user asking. The agent's instructions decide
+    between plain conversation, public role research and the talent-pool search.
+    """
+    run = await talent_search_agent.arun(description)
+    return _coerce_agent_run(run)
 
 
 @base_app.post("/api/v1/talent/search", response_model=TalentSearchResult)

@@ -61,6 +61,18 @@ def init_talent_tables() -> None:
         )
         """,
         "ALTER TABLE talent_searches ADD COLUMN IF NOT EXISTS excel_drive_file_id TEXT",
+        # Cache of structured model answers. `cache_key` already encodes a
+        # pipeline version, so a prompt or schema change misses instead of
+        # serving stale content. Sample answers are never written here.
+        """
+        CREATE TABLE IF NOT EXISTS talent_llm_cache (
+            cache_key TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            payload JSONB NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_talent_llm_cache_created_at ON talent_llm_cache (created_at)",
     )
     with get_engine().begin() as connection:
         for statement in statements:
@@ -320,6 +332,43 @@ class TalentStore:
                     "excel_drive_file_id": result.excel_drive_file_id,
                     "status": result.status,
                     "warnings": json.dumps(result.warnings),
+                    "created_at": datetime.now(UTC),
+                },
+            )
+
+    def get_cached_json(self, cache_key: str) -> dict[str, Any] | None:
+        """Return a cached model answer, or None when absent."""
+        with get_engine().connect() as connection:
+            row = (
+                connection.execute(
+                    text("SELECT payload FROM talent_llm_cache WHERE cache_key = :cache_key"),
+                    {"cache_key": cache_key},
+                )
+                .mappings()
+                .first()
+            )
+        if row is None:
+            return None
+        payload = row["payload"]
+        return dict(payload) if isinstance(payload, dict) else None
+
+    def put_cached_json(self, cache_key: str, kind: str, payload: dict[str, Any]) -> None:
+        with get_engine().begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO talent_llm_cache (cache_key, kind, payload, created_at)
+                    VALUES (:cache_key, :kind, CAST(:payload AS jsonb), :created_at)
+                    ON CONFLICT (cache_key) DO UPDATE SET
+                        kind = EXCLUDED.kind,
+                        payload = EXCLUDED.payload,
+                        created_at = EXCLUDED.created_at
+                    """
+                ),
+                {
+                    "cache_key": cache_key,
+                    "kind": kind,
+                    "payload": json.dumps(payload, ensure_ascii=False),
                     "created_at": datetime.now(UTC),
                 },
             )
