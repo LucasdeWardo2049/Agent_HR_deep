@@ -1,0 +1,9 @@
+﻿=== PERGUNTA: Descreva o que voce faz?
+status=needs_clarification
+Pesquisar o perfil pÃºblico de um cargo, com responsabilidades, competÃªncias e pontos a confirmar em entrevista, sempre citando as fontes; analisar os currÃ­culos do banco de talentos contra os requisitos de uma vaga e entregar um relatÃ³rio em planilha com evidÃªncias, lacunas e pontos a confirmar; a decisÃ£o Ã© sempre humana: vocÃª nÃ£o classifica, aprova, rejeita nem recomenda pessoas, e evidÃªncia ausente nÃ£o Ã© prova de ausÃªncia de qualificaÃ§Ã£o.
+=== PERGUNTA: Traduza para ingles: bom dia
+status=needs_clarification
+Estou fora do meu escopo. Sou o Talent Search Assistant e faÃ§o exatamente duas coisas: pesquisar o perfil pÃºblico de um cargo e analisar os currÃ­culos do banco de talentos configurado.
+=== PERGUNTA: Escreva um poema sobre o mar
+status=needs_clarification
+Estou fora do meu escopo. Sou o Talent Search Assistant e faÃ§o exatamente duas coisas: pesquisar o perfil pÃºblico de um cargo e analisar os currÃ­culos do banco de talentos configurado.
